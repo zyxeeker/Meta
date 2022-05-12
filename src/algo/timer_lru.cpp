@@ -4,28 +4,28 @@ namespace algo {
 namespace timer {
 
 int TimerLru::Put(u_int32_t ip, ClientData client) {
-  auto it = m_table.find(ip);
+  auto it = table().find(ip);
 
-  if (it != m_table.end()) {
+  if (it != table().end()) {
     it->second->second = client;
-    m_list.splice(m_list.begin(), m_list, it->second);
-    it->second = m_list.begin();
+    list().splice(list().begin(), list(), it->second);
+    it->second = list().begin();
     return ADD_CLIENT_SUCCESS;
   }
 
-  if (m_list.size() == m_capacity) {
+  if (list().size() == capacity()) {
     timeval tv;
     gettimeofday(&tv, 0);
-    if (JudgeClient(tv, m_list.rbegin()->second.time) == IN_TIME)
+    if (JudgeClient(tv, list().rbegin()->second.time) == IN_TIME)
       return CLIENT_LIST_FULL;
     else {
-      m_table.erase(m_list.rbegin()->first);
-      m_list.pop_back();
+      table().erase(list().rbegin()->first);
+      list().pop_back();
     }
   }
 
-  m_list.emplace_front(std::pair<u_int32_t, ClientData>{ip, client});
-  m_table[ip] = m_list.begin();
+  list().emplace_front(std::pair<u_int32_t, ClientData>{ip, client});
+  table()[ip] = list().begin();
   return ADD_CLIENT_SUCCESS;
 }
 
@@ -33,9 +33,9 @@ void TimerLru::Adjust() {
   timeval tv;
   gettimeofday(&tv, 0);
 
-  for (auto i = m_list.rbegin(); i != m_list.rend(); ++i) {
+  for (auto i = list().rbegin(); i != list().rend(); ++i) {
     if (JudgeClient(tv, i->second.time) == OVER_TIME) {
-      m_table.erase(i->first);
+      table().erase(i->first);
       m_callback(i->second.fd);
     }
   }

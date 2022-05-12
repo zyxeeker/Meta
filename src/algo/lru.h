@@ -12,21 +12,29 @@ namespace algo {
 template <typename key_type, typename value_type>
 class Lru {
  public:
+  typedef std::list<std::pair<key_type, value_type>> List;
+  typedef std::unordered_map<key_type, typename List::iterator> Table;
+
   Lru(size_t _cap) : m_capacity(_cap){};
   ~Lru() = default;
 
   value_type Get(key_type key);
   virtual int Put(key_type key, value_type value);
 
+  size_t capacity() const { return m_capacity; }
   void set_capacity(size_t cap) { m_capacity = cap; }
 
- protected:
-  size_t m_capacity;
-  std::unordered_map<
-      key_type, typename std::list<std::pair<key_type, value_type>>::iterator>
-      m_table;
+  Table& table() { return m_table; }
 
-  std::list<std::pair<key_type, value_type>> m_list;
+  List& list() { return m_list; }
+
+ private:
+  // 容量
+  size_t m_capacity;
+  // 哈希表
+  Table m_table;
+  // 存储列表
+  List m_list;
 
   DISALLOW_COPY_AND_ASSIGN(Lru);
 };
