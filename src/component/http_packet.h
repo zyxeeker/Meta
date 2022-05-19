@@ -23,7 +23,9 @@ class Packet {
   // 包装类型
   Type type() { return m_type; }
 
-  std::string& buf() { return m_buf; }
+  const char* buf() const { return m_buf.c_str(); }
+
+  size_t size() const { return m_buf.size(); }
 
  private:
   void MakeInfoAndHeader();
