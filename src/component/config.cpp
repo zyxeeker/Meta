@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#define CONFIG_ARG(Key) #Key, m_config.Key
+#define CONFIG_ARG(Key) cfg, #Key, m_config.Key
 
 namespace com {
 
@@ -20,9 +20,15 @@ Config::Config() {
 
 void Config::Read(YAML::Node& cfg) {
   // 目录
-  ReadOption<std::string>(cfg, CONFIG_ARG(directory));
+  ReadOption<std::string>(CONFIG_ARG(directory));
   // 端口
-  ReadOption<u_int32_t>(cfg, CONFIG_ARG(port));
+  ReadOption<u_int32_t>(CONFIG_ARG(port));
+  // 定时器检查连接时长
+  ReadOption<u_int32_t>(CONFIG_ARG(timer_time_out));
+  // 连接保活时长
+  ReadOption<u_int32_t>(CONFIG_ARG(client_alive_time));
+  // 客户端容量
+  ReadOption<u_int32_t>(CONFIG_ARG(client_capacity));
 }
 
 template <typename T>
