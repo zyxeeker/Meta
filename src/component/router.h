@@ -27,7 +27,8 @@ class Router {
   }
 
   void Process();
-  const FILE_INFO& file_list(std::string key) { return m_table[key]; }
+  // 搜索文件
+  const FILE_INFO* Find(std::string key);
 
  private:
   Router();

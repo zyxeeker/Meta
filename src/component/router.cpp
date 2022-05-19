@@ -59,4 +59,11 @@ void Router::Process() {
   }
 }
 
+const Router::FILE_INFO *Router::Find(std::string key) {
+  auto it = m_table.find(key);
+  if (it == m_table.end()) return nullptr;
+
+  return &(it->second);
+}
+
 }  // namespace com
