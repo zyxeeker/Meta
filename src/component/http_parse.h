@@ -46,7 +46,7 @@ class Parse {
   // 判断请求内容是否完整
   LineResult ParseContent(size_t& left);
   // 判断请求方式
-  Method JudgeMethod(const size_t& start, const size_t& end);
+  Method JudgeMethod(const size_t& end);
 
  private:
   char* m_data = nullptr;

@@ -69,7 +69,7 @@ Parse::LineResult Parse::ParseRequest(const size_t& right) {
     if (m_data[cur] == ' ' || m_data[cur] == '\0') {
       switch (check_request_state) {
         case CHECK_METHOD: {
-          if ((m_method = JudgeMethod(start, right)) == BAD_METHOD)
+          if ((m_method = JudgeMethod(cur)) == BAD_METHOD)
             return LINE_BAD;
           check_request_state = CHECK_URL;
           start = cur + 1;
@@ -117,8 +117,8 @@ Parse::LineResult Parse::ParseContent(size_t& left) {
 }
 
 // 判断请求方式
-Method Parse::JudgeMethod(const size_t& start, const size_t& end) {
-  if (strncmp(m_data, "GET", start - end)) {
+Method Parse::JudgeMethod(const size_t& end) {
+  if (strncmp(m_data, "GET", end) == 0) {
     return GET;
   }
   return BAD_METHOD;
