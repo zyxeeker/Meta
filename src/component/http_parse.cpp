@@ -9,7 +9,7 @@ namespace http {
 
 Parse::Parse(char* _data, size_t _len) : m_data(_data), m_len(_len) {}
 
-HTTP_CODE Parse::Process() {
+HttpCode Parse::Process() {
   size_t left = 0, right = 0;
   auto check_state = CHECK_REQUEST;
 
@@ -18,7 +18,9 @@ HTTP_CODE Parse::Process() {
     switch (check_state) {
       // 解析请求体
       case CHECK_REQUEST: {
-        if (ParseRequest(right) != LINE_OK) return METHOD_NOT_ALLOWED;
+        auto res = ParseRequest(right);
+        if (res == BAD_METHOD) return METHOD_NOT_ALLOWED;
+        if (res == BAD_VERSION) return HTTP_VERSION_NOT_SUPPORTED;
 
         check_state = CHECK_HEADER;
         break;
@@ -62,15 +64,14 @@ Parse::LineResult Parse::ParseLine(size_t& left, size_t& right) {
 }
 
 // 请求体解析
-Parse::LineResult Parse::ParseRequest(const size_t& right) {
+Parse::RequestResult Parse::ParseRequest(const size_t& right) {
   auto check_request_state = CHECK_METHOD;
   int start = 0;
   for (int cur = 0; cur <= right; ++cur) {
     if (m_data[cur] == ' ' || m_data[cur] == '\0') {
       switch (check_request_state) {
         case CHECK_METHOD: {
-          if ((m_method = JudgeMethod(cur)) == BAD_METHOD)
-            return LINE_BAD;
+          if ((m_method = JudgeMethod(cur)) == UNKNOWN) return BAD_METHOD;
           check_request_state = CHECK_URL;
           start = cur + 1;
           break;
@@ -82,13 +83,14 @@ Parse::LineResult Parse::ParseRequest(const size_t& right) {
           break;
         }
         case CHECK_VERSION: {
-          m_version = std::string(m_data + start, cur - start);
+          if ((m_version = JudgeVersion(start, cur)) == UNSUPPORTED)
+            return BAD_VERSION;
           break;
         }
       }
     }
   }
-  return LINE_OK;
+  return REQUEST_OK;
 }
 
 // 请求头部解析
@@ -117,11 +119,19 @@ Parse::LineResult Parse::ParseContent(size_t& left) {
 }
 
 // 判断请求方式
-Method Parse::JudgeMethod(const size_t& end) {
+HttpMethod Parse::JudgeMethod(const size_t& end) {
   if (strncmp(m_data, "GET", end) == 0) {
     return GET;
   }
-  return BAD_METHOD;
+  return UNKNOWN;
+}
+
+// 判断Http版本
+HttpVersion Parse::JudgeVersion(const size_t& start, const size_t& end) {
+  if (strncmp(m_data + start, "HTTP/1.1", end - start) == 0) {
+    return HTTP_1_1;
+  }
+  return UNSUPPORTED;
 }
 
 }  // namespace http

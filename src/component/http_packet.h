@@ -13,9 +13,9 @@ class Packet {
  public:
   enum Type { CODE, FILE, DATA };
   // 返回文件请求
-  Packet(std::string _version, std::string data, Type _type);
+  Packet(HttpVersion _version, std::string data, Type _type);
   // 返回错误请求
-  Packet(std::string _version, HTTP_CODE code);
+  Packet(HttpVersion _version, HttpCode code);
 
   void Process();
 
@@ -33,6 +33,8 @@ class Packet {
   void ReadFile();
   // 释放文件
   void ReleaseFile();
+  // 版本解析
+  void VersionTrans(HttpVersion _version);
 
  private:
   Type m_type;

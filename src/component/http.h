@@ -11,8 +11,10 @@
 namespace com {
 namespace http {
 
-enum Method {
-  BAD_METHOD = -1,
+enum HttpVersion { UNSUPPORTED = -1, HTTP_1_1 };
+
+enum HttpMethod {
+  UNKNOWN = -1,
   GET,
   HEAD,
   POST,
@@ -29,7 +31,7 @@ const char RESPONSE_CONTENT[] =
     "<body><center><h1>%s</h1></center>"
     "<hr/><center>Meta</center></body>";
 
-enum HTTP_CODE {
+enum HttpCode {
   // 1xx
   CONTINUE = 100,
   SWITCHING_PROTOCOLS = 101,

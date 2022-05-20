@@ -11,13 +11,15 @@ namespace com {
 namespace http {
 
 // 返回文件或者数据
-Packet::Packet(std::string _version, std::string data, Type _type)
-    : m_version(_version), m_data(data), m_type(_type) {}
+Packet::Packet(HttpVersion _version, std::string data, Type _type)
+    : m_data(data), m_type(_type) {
+  VersionTrans(_version);
+}
 
 // 返回错误请求
-Packet::Packet(std::string _version, HTTP_CODE code)
-    : m_version(_version), m_code(code) {
-  m_type = CODE;
+Packet::Packet(HttpVersion _version, HttpCode code)
+    : m_code(code), m_type(CODE) {
+  VersionTrans(_version);
 }
 
 void Packet::AddHeader(std::string key, std::string value) {
@@ -69,7 +71,7 @@ void Packet::MakeInfoAndHeader() {
 
 // 读取文件
 void Packet::ReadFile() {
-  m_file_size = com::Router::Instance()->file_list(m_data).file_stat.st_size;
+  m_file_size = com::Router::Instance()->Find(m_data)->file_stat.st_size;
   std::string path = com::Config::Instance()->config().directory + m_data;
 
   auto fd = open(path.c_str(), O_RDONLY);
@@ -80,6 +82,15 @@ void Packet::ReadFile() {
 
 // 释放文件
 void Packet::ReleaseFile() { munmap(m_file_address, m_file_size); }
+
+// 版本解析
+void Packet::VersionTrans(HttpVersion _version) {
+  switch (_version) {
+    case HTTP_1_1: {
+      m_version = "HTTP/1.1";
+    }
+  }
+}
 
 }  // namespace http
 }  // namespace com
