@@ -68,43 +68,42 @@ TEST(Http, Parse_LineError) {
   EXPECT_EQ(parse.Process(strlen(request)), 400);
 }
 
-// // HTTP文件请求响应
-// TEST(Http, FileResponse) {
-//   com::http::Packet packet(com::http::HTTP_1_1, "/test/test11/e.txt",
-//                            com::http::Packet::FILE);
-//   packet.Process();
-//   char res[] =
-//       "HTTP/1.1 200 OK\r\n"
-//       "\r\n"
-//       "TTTTT\n";
-//   EXPECT_EQ(packet.buf(), res);
-//   // std::cout << packet.buf() << std::endl;
-// }
+// HTTP文件请求响应
+TEST(Http, FileResponse) {
+  com::http::Packet packet(com::http::HTTP_1_1);
+  packet.Process("/test/test11/e.txt", com::http::Packet::FILE);
+  writev(1, packet.file_buf(), 2);
+}
 
-// // HTTP错误请求响应
-// TEST(Http, ErrorCodeResponse) {
-//   com::http::Packet packet(com::http::HTTP_1_1, com::http::BAD_REQUEST);
-//   packet.Process();
-//   char res[] =
-//       "HTTP/1.1 400 Bad Request\r\n"
-//       "\r\n"
-//       "<head><title>400</title></head><body><center><h1>Bad "
-//       "Request</h1></center><hr/><center>Meta</center></body>";
-//   EXPECT_EQ(packet.buf(), res);
-//   // std::cout << packet.buf() << std::endl;
-// }
+// HTTP错误请求响应
+TEST(Http, ErrorCodeResponse) {
+  com::http::Packet packet(com::http::HTTP_1_1);
+  packet.Process(com::http::NOT_FOUND);
+  char res[] =
+      "HTTP/1.1 404 Not Found\r\n"
+      "Content-Length: 105\r\n"
+      "\r\n"
+      "<head><title>404</title></head><body><center><h1>Not "
+      "Found</h1></center><hr/><center>Meta</center></body>";
+  std::string str_buf(packet.buf());
+  std::string str_res(res);
+  EXPECT_EQ(str_buf, str_res);
+}
 
-// // HTTP数据请求响应
-// TEST(Http, DataResponse) {
-//   com::http::Packet packet(com::http::HTTP_1_1, "{\"Meta\":\"test\"}",
-//                            com::http::Packet::DATA);
-//   packet.Process();
-//   char res[] =
-//       "HTTP/1.1 200 OK\r\n"
-//       "\r\n"
-//       "{\"Meta\":\"test\"}";
-//   EXPECT_EQ(packet.buf(), res);
-// }
+// HTTP数据请求响应
+TEST(Http, DataResponse) {
+  com::http::Packet packet(com::http::HTTP_1_1);
+  packet.Process("{\"Meta\":\"test\"}", com::http::Packet::DATA);
+
+  char res[] =
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Length: 15\r\n"
+      "\r\n"
+      "{\"Meta\":\"test\"}";
+  std::string str_buf(packet.buf());
+  std::string str_res(res);
+  EXPECT_EQ(str_buf, str_res);
+}
 
 // 静态服务器路由表
 // TEST(Router, StaticServer) {
