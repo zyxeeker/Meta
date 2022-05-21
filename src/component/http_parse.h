@@ -18,9 +18,9 @@ class Parse {
   enum LineResult { LINE_BAD = -1, LINE_OK, LINE_OPEN };
   enum RequestResult { REQUEST_BAD = -1, REQUEST_OK, BAD_VERSION, BAD_METHOD };
 
-  Parse(char* _data, size_t _len);
+  Parse(char* _data) : m_data(_data) {}
 
-  HttpCode Process();
+  int Process(size_t len);
 
   // Http method
   const HttpMethod& method() { return m_method; }
@@ -39,13 +39,13 @@ class Parse {
 
  private:
   // 解析\r\n标志位
-  LineResult ParseLine(size_t& left, size_t& right);
+  LineResult ParseLine();
   // 处理请求体
-  RequestResult ParseRequest(const size_t& right);
+  RequestResult ParseRequest();
   // 处理请求头部选项
-  LineResult ParseHeader(const size_t& left, const size_t& right);
+  LineResult ParseHeader();
   // 判断请求内容是否完整
-  LineResult ParseContent(size_t& left);
+  LineResult ParseContent();
   // 判断请求方式
   HttpMethod JudgeMethod(const size_t& end);
   // 判断Http版本
@@ -53,7 +53,16 @@ class Parse {
 
  private:
   char* m_data = nullptr;
-  size_t m_len;
+  // buffer长度
+  size_t m_len = 0;
+  // 偏移值
+  size_t m_offset = 0;
+  // 窗口左边界
+  size_t m_left = 0;
+  // 窗口右边界
+  size_t m_right = 0;
+
+  CheckState m_check_state = CHECK_REQUEST;
 
   HttpMethod m_method;
   std::string m_url;
