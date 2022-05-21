@@ -26,7 +26,8 @@ enum HttpMethod {
   PATCH
 };
 
-const char RESPONSE_CONTENT[] =
+const int HTTP_CODE_CONTENT_LENGTH = 96;
+const char HTTP_CODE_CONTENT[] =
     "<head><title>%d</title></head>"
     "<body><center><h1>%s</h1></center>"
     "<hr/><center>Meta</center></body>";
