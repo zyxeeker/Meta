@@ -15,6 +15,12 @@ Packet::~Packet() {
   delete[] m_buf;
 }
 
+// 重置
+void Packet::Reset() {
+  bzero(m_buf, m_buf_size);
+  m_buf_offset = 0;
+}
+
 // 数据or文件
 void Packet::Process(std::string data, Type type) {
   m_type = type;
@@ -32,6 +38,7 @@ void Packet::Process() {
   switch (m_type) {
     case CODE: {
       AddStatueLine();
+      AddHeader("Connection", "keep-alive");
       AddHeader("Content-Length",
                 HTTP_CODE_CONTENT_LENGTH + k_http_code_dict[m_code].size());
       AddBkLine();
@@ -51,7 +58,7 @@ void Packet::Process() {
       m_file_buf[1].iov_base = m_file_address;
       m_file_buf[1].iov_len = m_file_size;
 
-      m_buf_size = m_buf_offset + m_file_size;
+      m_buf_size = m_buf_offset;
       break;
     }
     case DATA: {
@@ -111,6 +118,8 @@ void Packet::AddContent() {
     WriteBuffer(HTTP_CODE_CONTENT, m_code, k_http_code_dict[m_code].c_str());
   } else if (m_type == DATA) {
     WriteBuffer("%s", m_data.c_str());
+  } else {
+    WriteBuffer("%s", m_file_address);
   }
 }
 

@@ -16,33 +16,44 @@ class Packet {
  public:
   enum Type { CODE, FILE, DATA };
 
-  Packet(HttpVersion _version) : m_buf_size(1024) {
+  Packet() : m_buf_size(1024) {
     m_buf = new char[m_buf_size];
     bzero(m_buf, m_buf_size);
-
-    VersionTrans(_version);
   }
   ~Packet();
+
+  // 重置
+  void Reset();
 
   // 数据or文件
   void Process(std::string data, Type type);
   // 错误代码
   void Process(HttpCode code);
+
+  // 释放文件
+  void ReleaseFile();
+
+  // Http版本
+  void set_version(HttpVersion version) { VersionTrans(version); }
+  std::string version() const { return m_version; }
+
   // buffer大小
-  size_t size() const { return m_buf_size; }
+  size_t buf_size() const { return m_buf_size; }
+  // 文件大小
+  size_t file_size() const { return m_file_size; }
 
   // 包装类型
   Type type() { return m_type; }
-
-  const iovec* file_buf() { return m_file_buf; }
+  // 文件iov结构体
+  iovec* file_buf() { return m_file_buf; }
+  // 文件地址
+  void* file_addr() const { return m_file_address; }
 
   const char* buf() { return m_buf; }
 
  private:
   // 读取文件
   void ReadFile();
-  // 释放文件
-  void ReleaseFile();
   // 版本解析
   void VersionTrans(HttpVersion _version);
   // 数据处理
@@ -67,7 +78,7 @@ class Packet {
   // HttpCode
   int m_code = 200;
   // Http版本
-  std::string m_version;
+  std::string m_version = "HTTP/1.1";
 
   char* m_buf = nullptr;
 
