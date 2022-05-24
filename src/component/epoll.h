@@ -10,9 +10,9 @@ class Epoll {
   Epoll(int _max_events);
   ~Epoll();
 
-  void Add(int& fd);
+  void Add(int& fd, bool et_mode = true, bool one_shot = false);
   void Del(int& fd);
-  void Mod(int& fd);
+  void Mod(int& fd, int op);
   int Wait();
 
   int fd() const { return m_fd; }

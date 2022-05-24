@@ -1,5 +1,7 @@
 #include "epoll.h"
 
+#include <iostream>
+
 #include "common/util.h"
 
 namespace com {
@@ -11,11 +13,13 @@ Epoll::Epoll(int _max_events) : m_max_events(_max_events) {
 
 Epoll::~Epoll() { delete[] m_events; }
 
-void Epoll::Add(int& fd) {
+void Epoll::Add(int& fd, bool et_mode, bool one_shot) {
   epoll_event event;
   event.data.fd = fd;
-  // TODO(zyxeeker): 增加 EPOLLLT 和 EPOLLET 的选择
-  event.events = EPOLLIN | EPOLLET;
+  event.events = EPOLLIN;
+
+  if (et_mode) event.events |= EPOLLET;
+  if (one_shot) event.events |= EPOLLONESHOT;
 
   epoll_ctl(m_fd, EPOLL_CTL_ADD, fd, &event);
 
@@ -23,8 +27,12 @@ void Epoll::Add(int& fd) {
   util::SetNoBlock(fd);
 }
 
-void Epoll::Mod(int& fd) {
-  // TODO(zyxeeker): ...
+void Epoll::Mod(int& fd, int op) {
+  epoll_event event;
+  event.data.fd = fd;
+  event.events = op | EPOLLET | EPOLLONESHOT | EPOLLRDHUP;
+
+  epoll_ctl(m_fd, EPOLL_CTL_MOD, fd, &event);
 }
 
 void Epoll::Del(int& fd) { epoll_ctl(m_fd, EPOLL_CTL_DEL, fd, 0); }
