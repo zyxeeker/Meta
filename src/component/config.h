@@ -15,6 +15,7 @@ class Config {
     u_int32_t timer_time_out = 180;       // 定时器检查连接时长
     u_int32_t client_alive_time = 180;    // 连接保活时长
     u_int32_t client_capacity = 50;       // 客户端容量
+    u_int32_t read_buf_length = 4096;     // 读取缓存区大小
   } CFG;
 
   static Config* Instance() {

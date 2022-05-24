@@ -29,6 +29,8 @@ void Config::Read(YAML::Node& cfg) {
   ReadOption<u_int32_t>(CONFIG_ARG(client_alive_time));
   // 客户端容量
   ReadOption<u_int32_t>(CONFIG_ARG(client_capacity));
+  // 读取缓存区大小
+  ReadOption<u_int32_t>(CONFIG_ARG(read_buf_length));
 }
 
 template <typename T>

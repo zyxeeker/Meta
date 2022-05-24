@@ -3,3 +3,4 @@ port: 9006
 timer_time_out: 180
 client_alive_time: 180
 client_capacity: 50
+read_buf_length: 4096
