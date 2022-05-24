@@ -70,14 +70,14 @@ TEST(Http, Parse_LineError) {
 
 // HTTP文件请求响应
 TEST(Http, FileResponse) {
-  com::http::Packet packet(com::http::HTTP_1_1);
+  com::http::Packet packet;
   packet.Process("/test/test11/e.txt", com::http::Packet::FILE);
   writev(1, packet.file_buf(), 2);
 }
 
 // HTTP错误请求响应
 TEST(Http, ErrorCodeResponse) {
-  com::http::Packet packet(com::http::HTTP_1_1);
+  com::http::Packet packet;
   packet.Process(com::http::NOT_FOUND);
   char res[] =
       "HTTP/1.1 404 Not Found\r\n"
@@ -92,7 +92,7 @@ TEST(Http, ErrorCodeResponse) {
 
 // HTTP数据请求响应
 TEST(Http, DataResponse) {
-  com::http::Packet packet(com::http::HTTP_1_1);
+  com::http::Packet packet;
   packet.Process("{\"Meta\":\"test\"}", com::http::Packet::DATA);
 
   char res[] =
@@ -120,6 +120,7 @@ TEST(Config, Readfile) {
 }
 
 int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  net::Service::Instance()->Start();
+  // ::testing::InitGoogleTest(&argc, argv);
+  // return RUN_ALL_TESTS();
 }
