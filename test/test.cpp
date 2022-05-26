@@ -5,10 +5,11 @@
 #include "component/http_parse.h"
 #include "component/router.h"
 #include "gtest/gtest.h"
+#include "net/core.h"
 #include "net/service.h"
 #include "thread/pool.h"
 
-TEST(Net, MainService) { net::Service::Instance()->Start(); }
+#define META_LOOP 1
 
 // HTTP解析
 TEST(Http, Parse) {
@@ -119,8 +120,15 @@ TEST(Config, Readfile) {
   EXPECT_EQ(com::Config::Instance()->config().port, 9006);
 }
 
+#if META_LOOP
 int main(int argc, char **argv) {
-  net::Service::Instance()->Start();
-  // ::testing::InitGoogleTest(&argc, argv);
-  // return RUN_ALL_TESTS();
+  net::Core::Instance()->Start();
+  return 0;
 }
+
+#else
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
+#endif
