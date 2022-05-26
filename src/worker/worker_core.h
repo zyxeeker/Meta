@@ -12,7 +12,6 @@ namespace worker {
 class Core : public thread::Task {
  public:
   Core();
-  ~Core();
 
   void Init(int confd);
 

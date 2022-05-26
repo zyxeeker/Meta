@@ -54,7 +54,7 @@ void Pool::Run() {
 
     if (!task) continue;
 
-    task->Process(this);
+    task->Process();
   }
 }
 
