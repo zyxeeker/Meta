@@ -15,12 +15,6 @@ Packet::~Packet() {
   delete[] m_buf;
 }
 
-// 重置
-void Packet::Reset() {
-  bzero(m_buf, m_buf_size);
-  m_buf_offset = 0;
-}
-
 // 数据or文件
 void Packet::Process(std::string data, Type type) {
   m_type = type;

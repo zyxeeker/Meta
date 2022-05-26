@@ -22,9 +22,6 @@ class Packet {
   }
   ~Packet();
 
-  // 重置
-  void Reset();
-
   // 数据or文件
   void Process(std::string data, Type type);
   // 错误代码
