@@ -21,6 +21,11 @@ class Pool {
   static void* Worker(void* arg);
   void Run();
 
+  void Stop() {
+    m_stop = true;
+    for (int i = 0; i < m_max_thread_num; ++i) m_sem->Post();
+  }
+
  private:
   bool m_stop = false;
 

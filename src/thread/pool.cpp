@@ -22,10 +22,7 @@ Pool::Pool(size_t _max_request_num, size_t _max_thread_num)
   }
 }
 
-Pool::~Pool() {
-  delete[] m_thread_queue;
-  // m_stop = true;
-}
+Pool::~Pool() { delete[] m_thread_queue; }
 
 Pool::Result Pool::Append(Task* task) {
   if (m_request_queue.size() == m_max_request_num) return REQUEST_QUEUE_IS_FULL;
@@ -47,6 +44,8 @@ void* Pool::Worker(void* arg) {
 void Pool::Run() {
   while (!m_stop) {
     m_sem->Wait();
+    if (m_request_queue.size() == 0) continue;
+
     m_locker->Lock();
     Task* task = m_request_queue.front();
     m_request_queue.pop_front();
