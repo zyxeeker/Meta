@@ -4,6 +4,10 @@ project(Meta)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DMETA_DEBUG")
+endif()
+
 include_directories(src)
 # YAML
 include_directories(${CMAKE_SOURCE_DIR}/3rd/yaml/include)
