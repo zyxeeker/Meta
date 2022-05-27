@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "logger/core.h"
 #include "tcp_conn.h"
 #include "udp_conn.h"
 
@@ -13,7 +14,7 @@ INetWrap* CreateNetSokcet(INetWrap::NetType type, u_int32_t port) {
     case INetWrap::NetType::TCP: {
       auto* p = new TcpConn(port);
       if (p->Init() > 0) {
-        std::cout << "TCP CREATE FAILED!" << std::endl;
+        MERROR() << "TCP: Port is obtained!";
         delete p;
         return nullptr;
       }
@@ -22,7 +23,7 @@ INetWrap* CreateNetSokcet(INetWrap::NetType type, u_int32_t port) {
     case INetWrap::NetType::UDP: {
       auto* p = new UdpConn(port);
       if (p->Init() > 0) {
-        std::cout << "UDP CREATE FAILED!" << std::endl;
+        MERROR() << "UDP: Port is obtained!";
         delete p;
         return nullptr;
       }
