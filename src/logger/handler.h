@@ -6,24 +6,49 @@
 #include "log.h"
 #include "thread/pool.h"
 
+#ifdef META_DEBUG
+#define _DEBUG 1
+#else
+#define _DEBUG 0
+#endif
+
 namespace logger {
 
 class Core;
 
 class Handler {
  public:
-  Handler(LogLevel _level) {
-    TransLevel(_level);
-    GetTime();
+  Handler(LogLevel _level) : m_level(_level) {
+    if (_level == DEBUG) {
+#if _DEBUG
+      TransLevel(_level);
+      GetTime();
+#endif
+    } else {
+      TransLevel(_level);
+      GetTime();
+    }
   }
   ~Handler();
 
   Handler& operator<<(const char* v) {
-    m_buffer.buffer.append(v);
+    if (m_level == DEBUG) {
+#if _DEBUG
+      m_buffer.buffer.append(v);
+#endif
+    } else {
+      m_buffer.buffer.append(v);
+    }
     return *this;
   }
   Handler& operator<<(int v) {
-    m_buffer.buffer.append(std::to_string(v));
+    if (m_level == DEBUG) {
+#if _DEBUG
+      m_buffer.buffer.append(std::to_string(v));
+#endif
+    } else {
+      m_buffer.buffer.append(std::to_string(v));
+    }
     return *this;
   }
 
@@ -38,6 +63,7 @@ class Handler {
   inline void WriteToConsole();
 
  private:
+  LogLevel m_level;
   LogBuffer m_buffer;
 };
 

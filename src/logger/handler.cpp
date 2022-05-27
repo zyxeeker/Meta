@@ -2,17 +2,18 @@
 
 #include "core.h"
 
-#ifdef META_DEBUG
-#define _DEBUG 1
-#else
-#define _DEBUG 0
-#endif
-
 namespace logger {
 
 Handler::~Handler() {
-  WriteToConsole();
-  Core::Instance()->AppendTask(m_buffer);
+  if (m_level == DEBUG) {
+#if _DEBUG
+    WriteToConsole();
+    Core::Instance()->AppendTask(m_buffer);
+#endif
+  } else {
+    WriteToConsole();
+    Core::Instance()->AppendTask(m_buffer);
+  }
 }
 
 void Handler::GetTime() {
@@ -23,9 +24,7 @@ void Handler::GetTime() {
 void Handler::TransLevel(LogLevel level) {
   switch (level) {
     case DEBUG:
-#if _DEBUG
       WriteToBuffer("DEBUG", k_magenta);
-#endif
       break;
     case INFO:
       WriteToBuffer("INFO", k_cyan);
