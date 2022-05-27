@@ -30,6 +30,12 @@ class Core {
   void SocketListCtl(INetWrap *net, ListCtl ctl);
   // 关闭fd
   void Close(int32_t &fd);
+  // 停止线程
+  void Stop() {
+    m_reader_pool->Stop();
+    m_writer_pool->Stop();
+    m_process_pool->Stop();
+  }
 
   bool AddReaderTask(thread::Task *task) {
     if (m_reader_pool->Append(task) != thread::Pool::ADD_REQUEST_SUCCESS)

@@ -1,5 +1,15 @@
 #include "core.h"
 
+#include <arpa/inet.h>
+
+#include "logger/core.h"
+
+#ifdef META_DEBUG
+#define _DEBUG 1
+#else
+#define _DEBUG 0
+#endif
+
 namespace net {
 
 Core* Core::inst = nullptr;
@@ -19,16 +29,19 @@ void Core::Start() {
   if (p)
     SocketListCtl(p, LIST_CTL_ADD);
   else {
-    std::cout << "CREATE NET SERIVCE FAILED!" << std::endl;
+    MERROR() << "CREATE NET SERIVCE FAILED!";
     return;
   }
-  // 端口复用 IN DEBUG
+// 端口复用 IN DEBUG
+#if _DEBUG
   int reuse = 1;
   setsockopt(p->get_fd(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+#endif
   Loop();
 }
 
 void Core::Loop() {
+  MINFO() << "MAIN LOOP START!";
   while (1) {
     auto total = m_epoll->Wait();
 
@@ -37,7 +50,8 @@ void Core::Loop() {
      * error EINTR when interrupted by a signal handler */
 
     if (total == -1 && errno != EINTR) {
-      std::cout << "EPOLL FAILRUE!" << std::endl;
+      MERROR() << "MAIN LOOP STOP: "
+               << "EPOLL FAILRUE!";
       break;
     } else if (total == -1)
       continue;
@@ -49,6 +63,7 @@ void Core::Loop() {
         sockaddr_in client_addr;
         socklen_t length = sizeof(client_addr);
         auto confd = accept(socket, (sockaddr*)&client_addr, &length);
+        MDEBUG() << "CLIENT IP: " << inet_ntoa(client_addr.sin_addr);
         // 初始化处理类
         m_process_core[confd].Init(confd);
 
@@ -93,7 +108,6 @@ void Core::SocketListCtl(INetWrap* net, ListCtl ctl) {
 }
 
 void Core::Close(int32_t& fd) {
-  std::cout << "Close:" << fd << std::endl;
   // 从epoll管理中移除并关闭
   m_epoll->Del(fd);
   close(fd);
