@@ -1,3 +1,6 @@
+#include <pthread.h>
+#include <unistd.h>
+
 #include <iostream>
 
 #include "component/config.h"
@@ -5,6 +8,7 @@
 #include "component/http_parse.h"
 #include "component/router.h"
 #include "gtest/gtest.h"
+#include "logger/core.h"
 #include "net/core.h"
 #include "net/service.h"
 #include "thread/pool.h"
@@ -120,10 +124,32 @@ TEST(Config, Readfile) {
   EXPECT_EQ(com::Config::Instance()->config().port, 9006);
 }
 
+TEST(Logger, Output) { logger::Core::Instance(); }
+
+TEST(Logger, Writer) {
+  for (int i = 0; i < 60; ++i) {
+    MINFO() << "INFO-"
+            << "1111111"
+            << "@@@@";
+  }
+  MDEBUG() << "DEBUG-"
+           << "1111111";
+  sleep(2);
+  MWARN() << "WARN-"
+          << "1111111";
+  sleep(2);
+  MERROR() << "ERROR-"
+           << "1111111";
+}
+
 #if META_LOOP
 int main(int argc, char **argv) {
   net::Core::Instance()->Start();
-  return 0;
+
+  logger::Core::Instance()->Stop();
+  net::Core::Instance()->Stop();
+  pthread_exit(nullptr);
+  // return 0;
 }
 
 #else
