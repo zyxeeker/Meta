@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 
+#include "component/config.h"
 #include "logger/core.h"
 
 #ifdef META_DEBUG
@@ -25,7 +26,9 @@ Core::Core() {
 }
 
 void Core::Start() {
-  auto p = CreateNetSokcet(INetWrap::NetType::TCP, 9006);
+  MDEBUG() << com::Config::Instance()->config().port;
+  auto p = CreateNetSokcet(INetWrap::NetType::TCP,
+                           com::Config::Instance()->config().port);
   if (p)
     SocketListCtl(p, LIST_CTL_ADD);
   else {
