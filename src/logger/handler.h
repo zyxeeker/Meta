@@ -1,6 +1,7 @@
 #ifndef SRC_LOGGER_HANDLER_H_
 #define SRC_LOGGER_HANDLER_H_
 
+#include <cstring>
 #include <memory>
 
 #include "log.h"
@@ -21,10 +22,12 @@ class Handler {
   Handler(LogLevel _level) : m_level(_level) {
     if (_level == DEBUG) {
 #if _DEBUG
+      m_buffer = new LogBuffer;
       TransLevel(_level);
       GetTime();
 #endif
     } else {
+      m_buffer = new LogBuffer;
       TransLevel(_level);
       GetTime();
     }
@@ -34,20 +37,20 @@ class Handler {
   Handler& operator<<(const char* v) {
     if (m_level == DEBUG) {
 #if _DEBUG
-      m_buffer.buffer.append(v);
+      m_buffer->buffer.append(v);
 #endif
     } else {
-      m_buffer.buffer.append(v);
+      m_buffer->buffer.append(v);
     }
     return *this;
   }
   Handler& operator<<(int v) {
     if (m_level == DEBUG) {
 #if _DEBUG
-      m_buffer.buffer.append(std::to_string(v));
+      m_buffer->buffer.append(std::to_string(v));
 #endif
     } else {
-      m_buffer.buffer.append(std::to_string(v));
+      m_buffer->buffer.append(std::to_string(v));
     }
     return *this;
   }
@@ -64,7 +67,7 @@ class Handler {
 
  private:
   LogLevel m_level;
-  LogBuffer m_buffer;
+  LogBuffer* m_buffer;
 };
 
 }  // namespace logger

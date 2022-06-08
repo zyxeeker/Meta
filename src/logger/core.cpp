@@ -10,7 +10,8 @@ namespace logger {
 Core* Core::inst = nullptr;
 
 Core::Core() {
-  m_pool.reset(new thread::Pool(50, 1));
+  m_writer_producer_pool = new thread::Pool(1, WriterProducer::Process);
+  m_writer_consumer_pool = new thread::Pool(1, WriterConsumer::Process);
 
   char m_date[50]{0};
   time_t now = time(nullptr);
@@ -19,22 +20,28 @@ Core::Core() {
   char file_name[60]{0};
   sprintf(file_name, "log_%s.log", m_date);
   // log_2022_05_27_10_48.txt
-  m_file.open(file_name, std::ios::app);
+  m_file = fopen(file_name, "ab");
+
+  WriterProducer::Start();
 }
 
 Handler Core::Out(LogLevel level) { return Handler(level); }
 
-void Core::AppendTask(LogBuffer buf) {
-  // TODO: 修改判断条件
-  if (m_cur_writer_num >= 50) m_cur_writer_num = 0;
+void Core::AppendTask(LogBuffer* buf) {
+  pthread_mutex_lock(&m_lock);
+  m_list.push(buf);
+  pthread_mutex_unlock(&m_lock);
+}
 
-  auto p = m_writer + m_cur_writer_num;
-  p->Init(buf, &m_file);
-
-  if (m_pool->Append(p) != thread::Pool::ADD_REQUEST_SUCCESS)
-    MERROR() << "Logger queue is full!";
-
-  ++m_cur_writer_num;
+void* Core::GetObj() {
+  void* p = nullptr;
+  pthread_mutex_lock(&m_lock);
+  if (m_list.size() != 0) {
+    p = m_list.front();
+    m_list.pop();
+  }
+  pthread_mutex_unlock(&m_lock);
+  return p;
 }
 
 }  // namespace logger

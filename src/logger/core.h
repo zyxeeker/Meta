@@ -1,8 +1,9 @@
 #ifndef SRC_LOGGER_CORE_H_
 #define SRC_LOGGER_CORE_H_
 
-#include <fstream>
+#include <cstdio>
 #include <memory>
+#include <queue>
 #include <string>
 
 #include "handler.h"
@@ -24,24 +25,29 @@ class Core {
     return inst;
   }
   Core();
-  ~Core() { m_file.close(); }
+  ~Core() { fclose(m_file); }
 
-  void AppendTask(LogBuffer buf);
+  void AppendTask(LogBuffer* buf);
 
-  void Stop() { m_pool->Stop(); }
+  void* GetObj();
+
+  FILE* file() { return m_file; }
 
   Handler Out(LogLevel level);
 
  private:
   static Core* inst;
-  // 异步写文件池
-  std::shared_ptr<thread::Pool> m_pool;
+
+  pthread_mutex_t m_lock = PTHREAD_MUTEX_INITIALIZER;
   // 文件
-  std::ofstream m_file;
+  FILE* m_file = nullptr;
   // 当前可用写者序号
   int m_cur_writer_num = 0;
-  // 写者
-  Writer m_writer[50];
+  // 缓冲
+  std::queue<LogBuffer*> m_list;
+  // 生产者和消费者
+  thread::Pool* m_writer_producer_pool = nullptr;
+  thread::Pool* m_writer_consumer_pool = nullptr;
 };
 
 }  // namespace logger

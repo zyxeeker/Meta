@@ -10,7 +10,6 @@
 #include "gtest/gtest.h"
 #include "logger/core.h"
 #include "net/core.h"
-#include "net/service.h"
 #include "thread/pool.h"
 
 #define META_LOOP 1
@@ -142,19 +141,11 @@ TEST(Logger, Writer) {
            << "1111111";
 }
 
+int main(int argc, char **argv) {
 #if META_LOOP
-int main(int argc, char **argv) {
   net::Core::Instance()->Start();
-
-  logger::Core::Instance()->Stop();
-  net::Core::Instance()->Stop();
-  pthread_exit(nullptr);
-  // return 0;
-}
-
 #else
-int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
-}
 #endif
+}

@@ -11,8 +11,8 @@
 #include "component/epoll.h"
 #include "component/signal.h"
 #include "conn_wrap.h"
+#include "object.h"
 #include "thread/pool.h"
-#include "worker/worker_core.h"
 
 namespace net {
 
@@ -30,28 +30,6 @@ class Core {
   void SocketListCtl(INetWrap *net, ListCtl ctl);
   // 关闭fd
   void Close(int32_t &fd);
-  // 停止线程
-  void Stop() {
-    m_reader_pool->Stop();
-    m_writer_pool->Stop();
-    m_process_pool->Stop();
-  }
-
-  bool AddReaderTask(thread::Task *task) {
-    if (m_reader_pool->Append(task) != thread::Pool::ADD_REQUEST_SUCCESS)
-      return false;
-    return true;
-  }
-  bool AddWriterTask(thread::Task *task) {
-    if (m_writer_pool->Append(task) != thread::Pool::ADD_REQUEST_SUCCESS)
-      return false;
-    return true;
-  }
-  bool AddProcessTask(thread::Task *task) {
-    if (m_process_pool->Append(task) != thread::Pool::ADD_REQUEST_SUCCESS)
-      return false;
-    return true;
-  }
 
  private:
   Core();
@@ -60,13 +38,10 @@ class Core {
  private:
   static Core *inst;
 
-  worker::Core *m_process_core = nullptr;
+  Object *m_object = nullptr;
 
   // epoll
   std::shared_ptr<com::Epoll> m_epoll;
-  std::unique_ptr<thread::Pool> m_reader_pool;
-  std::unique_ptr<thread::Pool> m_writer_pool;
-  std::unique_ptr<thread::Pool> m_process_pool;
 
   // 多个端口服务
   std::unordered_map<int, std::shared_ptr<INetWrap>> m_socket_list;

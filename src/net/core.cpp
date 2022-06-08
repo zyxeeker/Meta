@@ -4,6 +4,7 @@
 
 #include "component/config.h"
 #include "logger/core.h"
+#include "worker/worker_waiter.h"
 
 #ifdef META_DEBUG
 #define _DEBUG 1
@@ -17,16 +18,11 @@ Core* Core::inst = nullptr;
 
 Core::Core() {
   m_epoll.reset(new com::Epoll(10000));
-  m_reader_pool.reset(new thread::Pool(50, 50));
-  m_writer_pool.reset(new thread::Pool(50, 50));
-  m_process_pool.reset(new thread::Pool(50, 50));
-
-  m_process_core = new worker::Core[65536];
-  m_process_core->k_epoll = m_epoll;
+  m_object = new Object[65536];
+  m_object->epoll = m_epoll;
 }
 
 void Core::Start() {
-  MDEBUG() << com::Config::Instance()->config().port;
   auto p = CreateNetSokcet(INetWrap::NetType::TCP,
                            com::Config::Instance()->config().port);
   if (p)
@@ -68,7 +64,8 @@ void Core::Loop() {
         auto confd = accept(socket, (sockaddr*)&client_addr, &length);
         MDEBUG() << "CLIENT IP: " << inet_ntoa(client_addr.sin_addr);
         // 初始化处理类
-        m_process_core[confd].Init(confd);
+        m_object[confd].fd = confd;
+        m_object[confd].Init();
 
         m_epoll->Add(confd, true);
       }
@@ -79,16 +76,18 @@ void Core::Loop() {
       }
       // 客户端数据可读
       else if (m_epoll->events(i)->events & EPOLLIN) {
-        if (AddReaderTask(m_process_core[socket].reader())) continue;
+        worker::WorkerWaiter::Instance()->Append(worker::WorkerWaiter::READER,
+                                                 &m_object[socket]);
         // 过载
-        m_process_core[socket].CreateServiceUnavailableResp();
-        m_epoll->Mod(socket, EPOLLOUT);
+        // m_process_core[socket].CreateServiceUnavailableResp();
+        // m_epoll->Mod(socket, EPOLLOUT);
       }
       // 客户端数据可写
       else if (m_epoll->events(i)->events & EPOLLOUT) {
-        if (AddWriterTask(m_process_core[socket].writer())) continue;
+        worker::WorkerWaiter::Instance()->Append(worker::WorkerWaiter::WRITER,
+                                                 &m_object[socket]);
         // 过载
-        m_epoll->Mod(socket, EPOLLOUT);
+        // m_epoll->Mod(socket, EPOLLOUT);
       }
     }
   }

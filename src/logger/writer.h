@@ -1,22 +1,35 @@
 #ifndef SRC_LOGGER_WRITER_H_
 #define SRC_LOGGER_WRITER_H_
 
+#include <pthread.h>
+#include <semaphore.h>
+
 #include <iostream>
 #include <string>
 
 #include "log.h"
-#include "thread/task.h"
 
 namespace logger {
 
-class Writer : public thread::Task {
+class WriterProducer {
  public:
-  void Init(LogBuffer buffer, std::ofstream* file);
-  void Process() override;
+  WriterProducer() { sem_init(&m_k_sem, 0, 0); }
 
- private:
-  LogBuffer m_buffer;
-  std::ofstream* m_file = nullptr;
+  static void Start() { sem_post(&m_k_sem); }
+
+  static void Process();
+
+ public:
+  static sem_t m_k_sem;
+};
+
+class WriterConsumer {
+ public:
+  WriterConsumer() { sem_init(&m_k_sem, 0, 1); }
+  static void Process();
+
+ public:
+  static sem_t m_k_sem;
 };
 
 }  // namespace logger

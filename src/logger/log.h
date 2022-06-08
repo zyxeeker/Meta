@@ -20,9 +20,9 @@ enum LogLevel { DEBUG = 0, INFO, WARN, ERROR };
 
 // buffer
 struct LogBuffer {
-  char date[50]{0};
-  char file_level_buf[10]{0};
-  char level_buf[20]{0};
+  char date[50];
+  char file_level_buf[10];
+  char level_buf[20];
   std::string buffer;
 };
 
