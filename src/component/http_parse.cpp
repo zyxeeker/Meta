@@ -45,6 +45,8 @@ int Parse::Process(size_t len) {
     }
     m_right += 2;
     m_left = m_right;
+
+    m_offset = m_left;
     // 判断请求头是否解析完毕
     if (m_left + 1 >= m_len) {
       m_offset = m_len;
@@ -73,21 +75,16 @@ int Parse::Process(size_t len) {
 // 解析\r\n标志位
 Parse::LineResult Parse::ParseLine() {
   for (int index = m_offset; index < m_len; ++index) {
-    auto tmp = m_data[index];
     if (m_data[index] == '\r') {
       if (index + 1 >= m_len) break;
       if (m_data[index + 1] == '\n') {  // 完整一行
-        m_data[index] = '\0';
-        m_data[index + 1] = '\0';
         m_right = index;
         return LINE_OK;
       }
       return LINE_BAD;  // 该行出错
     } else if (m_data[index] == '\n') {
       if (index - 1 >= 0 && m_data[index - 1] == '\r') {  // 完整一行
-        m_data[index] = '\0';
-        m_data[--index] = '\0';
-        m_right = index;
+        m_right = --index;
         return LINE_OK;
       }
       return LINE_BAD;  // 该行出错
@@ -101,7 +98,7 @@ Parse::RequestResult Parse::ParseRequest() {
   auto check_request_state = CHECK_METHOD;
   int start = 0;
   for (int cur = 0; cur <= m_right; ++cur) {
-    if (m_data[cur] == ' ' || m_data[cur] == '\0') {
+    if (m_data[cur] == ' ' || m_data[cur] == '\r') {
       switch (check_request_state) {
         case CHECK_METHOD: {
           if ((m_method = JudgeMethod(cur)) == UNKNOWN) return BAD_METHOD;
