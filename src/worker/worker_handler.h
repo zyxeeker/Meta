@@ -14,7 +14,6 @@ class ReaderHandler {
   static void Process();
 
  public:
-  static pthread_mutex_t m_k_lock;
   static pthread_cond_t m_k_cond;
 };
 
@@ -23,7 +22,6 @@ class WriterHandler {
   static void Process();
 
  public:
-  static pthread_mutex_t m_k_lock;
   static pthread_cond_t m_k_cond;
 };
 
@@ -32,7 +30,6 @@ class ContentHandler {
   static void Process();
 
  public:
-  static pthread_mutex_t m_k_lock;
   static pthread_cond_t m_k_cond;
 };
 
