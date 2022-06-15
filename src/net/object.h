@@ -1,13 +1,33 @@
 #ifndef SRC_NET_OBJECT_H_
 #define SRC_NET_OBJECT_H_
 
+#include <pthread.h>
+
+#include <list>
 #include <memory>
+#include <queue>
 
 #include "component/epoll.h"
 #include "component/http_packet.h"
 #include "component/http_parse.h"
 
 namespace net {
+
+class DeliverCore;
+
+struct Chunk {
+  char* addr = nullptr;
+  char* addr_offset = nullptr;
+  size_t size = 0;
+
+  Chunk(char* p, size_t l) : addr(p), addr_offset(p), size(l) {}
+  ~Chunk() {
+    if (!addr) {
+      printf("NOT NULL!\n");
+      delete[] addr;
+    }
+  }
+};
 
 struct Object {
   int fd;
@@ -35,9 +55,20 @@ struct Object {
   // 写区buffer
   char* write_buf = nullptr;
 
+  // 转发数据
+  std::queue<Chunk> chunk_data;
+
+  pthread_mutex_t chunk_lock = PTHREAD_MUTEX_INITIALIZER;
+  bool transfer_thread_exist = false;
+  pthread_t transfer_thread;
+  pthread_t* transfer_read_thread = nullptr;
+
+  DeliverCore* deliver = nullptr;
+
   Object();
   ~Object();
   void Init();
+  void Close();
 };
 
 }  // namespace net

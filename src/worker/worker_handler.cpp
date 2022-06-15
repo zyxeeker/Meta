@@ -41,6 +41,7 @@ void WriterHandler::Process() {
     while (!(job = WorkerWaiter::Instance()->GetObject(WorkerWaiter::WRITER))) {
       pthread_cond_wait(&m_k_cond, &lock);
     }
+    // MINFO() << "DO IT: " << ((net::Object*)job->arg)->fd;
     // 处理区
     job->run(job->arg);
 
@@ -60,7 +61,6 @@ void ContentHandler::Process() {
         !(job = WorkerWaiter::Instance()->GetObject(WorkerWaiter::CONTENT))) {
       pthread_cond_wait(&m_k_cond, &lock);
     }
-    MINFO() << "DO IT: " << ((net::Object*)job->arg)->fd;
     // 处理区
     job->run(job->arg);
 

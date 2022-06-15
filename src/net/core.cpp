@@ -62,6 +62,7 @@ void Core::Loop() {
         sockaddr_in client_addr;
         socklen_t length = sizeof(client_addr);
         auto confd = accept(socket, (sockaddr*)&client_addr, &length);
+        MDEBUG() << "CON FD: " << confd;
         MDEBUG() << "CLIENT IP: " << inet_ntoa(client_addr.sin_addr);
         // 初始化处理类
         m_object[confd].fd = confd;
@@ -72,10 +73,13 @@ void Core::Loop() {
       // 管道数据
       else if (m_epoll->events(i)->events &
                (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
+        MDEBUG() << "CLOSE FD: " << socket;
+        m_object[socket].Close();
         Close(socket);
       }
       // 客户端数据可读
       else if (m_epoll->events(i)->events & EPOLLIN) {
+        MDEBUG() << "READER CON FD: " << socket;
         worker::WorkerWaiter::Instance()->Append(worker::WorkerWaiter::READER,
                                                  &m_object[socket]);
         // 过载
@@ -84,6 +88,7 @@ void Core::Loop() {
       }
       // 客户端数据可写
       else if (m_epoll->events(i)->events & EPOLLOUT) {
+        MDEBUG() << "EPOLLOUT: " << socket;
         worker::WorkerWaiter::Instance()->Append(worker::WorkerWaiter::WRITER,
                                                  &m_object[socket]);
         // 过载

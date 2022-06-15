@@ -8,9 +8,9 @@ namespace worker {
 WorkerWaiter* WorkerWaiter::inst = nullptr;
 
 WorkerWaiter::WorkerWaiter() {
-  m_reader_pool = new thread::Pool(32, io::ReaderHandler::Process);
-  m_content_pool = new thread::Pool(64, io::ContentHandler::Process);
-  m_write_pool = new thread::Pool(32, io::WriterHandler::Process);
+  m_reader_pool = new thread::Pool(20, io::ReaderHandler::Process);
+  m_content_pool = new thread::Pool(20, io::ContentHandler::Process);
+  m_write_pool = new thread::Pool(20, io::WriterHandler::Process);
 }
 
 thread::Job* WorkerWaiter::GetObject(int type) {
@@ -63,7 +63,7 @@ void WorkerWaiter::Append(int type, net::Object* obj) {
     case WRITER: {
       m_write_queue.push(new thread::Job{WriterHandlerFun, obj});
       ++m_ready_to_write_count;
-      pthread_cond_signal(&worker::io::WriterHandler::m_k_cond);
+      pthread_cond_signal(&io::WriterHandler::m_k_cond);
       break;
     }
   }

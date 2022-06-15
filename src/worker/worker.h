@@ -1,10 +1,14 @@
 #ifndef SRC_WORKER_WORKER_H_
 #define SRC_WORKER_WORKER_H_
 
+#include <signal.h>
+
 #include "component/config.h"
 #include "component/epoll.h"
 #include "component/http.h"
 #include "component/router.h"
+#include "logger/core.h"
+#include "net/deliver_core.h"
 #include "net/object.h"
 #include "worker_waiter.h"
 
@@ -63,6 +67,47 @@ void ReaderHandlerFun(void* arg) {
   return;
 }
 
+void* TransferHandlerFun(void* arg) {
+  struct net::Object* object = (net::Object*)arg;
+
+  int writed = 0;
+  while (object->chunk_data.size() > 0) {
+    pthread_mutex_lock(&object->chunk_lock);
+
+    auto& p = object->chunk_data.front();
+
+    if (p.size == 0) {
+      object->chunk_data.pop();
+      pthread_mutex_unlock(&object->chunk_lock);
+      continue;
+    }
+
+    writed = send(object->fd, p.addr_offset, p.size, MSG_NOSIGNAL);
+
+    MDEBUG() << "SEND: " << writed;
+
+    if (writed < 0) {
+      if (errno = EAGAIN) {
+        MDEBUG() << "EAGAIN";
+        object->epoll->Mod(object->fd, EPOLLOUT);
+        pthread_mutex_unlock(&object->chunk_lock);
+        return nullptr;
+      }
+      // 重新初始化处理线程的成员
+      object->Init();
+      close(object->fd);
+      break;
+    }
+
+    p.size -= writed;
+    p.addr_offset += writed;
+
+    pthread_mutex_unlock(&object->chunk_lock);
+  }
+  pthread_mutex_unlock(&object->chunk_lock);
+  object->epoll->Mod(object->fd, EPOLLIN);
+}
+
 void WriterHandlerFun(void* arg) {
   struct net::Object* object = (net::Object*)arg;
 
@@ -77,32 +122,56 @@ void WriterHandlerFun(void* arg) {
   if (type == com::http::Packet::FILE) {
     file_buf_p = object->packet_handler->file_buf();
     file_size = object->packet_handler->file_size();
+    if (object->write_offset >= buf_size + file_size) return;
   }
-
-  if (object->write_offset >= buf_size + file_size) return;
 
   int writed = 0;
   size_t total_size = buf_size + file_size;
 
   while (1) {
-    if (type == com::http::Packet::CODE)
-      writed = send(object->fd, buf_p + object->write_offset,
-                    buf_size - object->write_offset, MSG_NOSIGNAL);
-    else {
-      int over = 0;
-      // 使用iovec需自己计算偏移值
-      if (object->write_offset >= buf_size) {
-        over = object->write_offset - buf_size;
-        file_buf_p[0].iov_len = 0;
-        file_buf_p[1].iov_base = (char*)file_buf_p[1].iov_base + over;
-        file_buf_p[1].iov_len = file_buf_p[1].iov_len - over;
-      } else {
-        file_buf_p[0].iov_base =
-            (char*)file_buf_p[0].iov_base + object->write_offset;
-        file_buf_p[0].iov_len = file_buf_p[0].iov_len - object->write_offset;
+    switch (type) {
+      case com::http::Packet::CODE: {
+        writed = send(object->fd, buf_p + object->write_offset,
+                      buf_size - object->write_offset, MSG_NOSIGNAL);
+        break;
       }
-      writed = writev(object->fd, file_buf_p, 2);
-      object->write_offset = 0;
+      case com::http::Packet::FILE: {
+        int over = 0;
+        // 使用iovec需自己计算偏移值
+        if (object->write_offset >= buf_size) {
+          over = object->write_offset - buf_size;
+          file_buf_p[0].iov_len = 0;
+          file_buf_p[1].iov_base = (char*)file_buf_p[1].iov_base + over;
+          file_buf_p[1].iov_len = file_buf_p[1].iov_len - over;
+        } else {
+          file_buf_p[0].iov_base =
+              (char*)file_buf_p[0].iov_base + object->write_offset;
+          file_buf_p[0].iov_len = file_buf_p[0].iov_len - object->write_offset;
+        }
+        writed = writev(object->fd, file_buf_p, 2);
+        object->write_offset = 0;
+        break;
+      }
+      case com::http::Packet::TRANS: {
+        if (object->transfer_thread_exist) {
+          int kill_rc = pthread_kill(object->transfer_thread, 0);
+          if (kill_rc == ESRCH)
+            printf("the specified thread did not exists or already quit\n");
+          else if (kill_rc == EINVAL)
+            printf("signal is invalid\n");
+          else {
+            printf("the specified thread is alive\n");
+            return;
+          }
+        }
+
+        pthread_create(&(object->transfer_thread), nullptr, TransferHandlerFun,
+                       object);
+        object->transfer_thread_exist = true;
+        pthread_detach(object->transfer_thread);
+
+        return;
+      }
     }
 
     if (writed < 0) {
@@ -133,6 +202,28 @@ void ContentHandlerFun(void* arg) {
 
   if (object->http_code != 200) {
     object->packet_handler->Process(object->http_code);
+    object->epoll->Mod(object->fd, EPOLLOUT);
+    return;
+  }
+
+  std::string p_host_value;
+  com::Config::UrlRedirectConfig* p_url_cfg = nullptr;
+  try {
+    p_host_value = object->parse_handler->header().at("Host");
+    MDEBUG() << "HOST: " << p_host_value.c_str();
+    p_url_cfg =
+        com::Config::Instance()->config().redirect_settings.at(p_host_value);
+  } catch (...) {
+    MDEBUG() << "TRANSFER HOST NOT FOUND!";
+  }
+  if (p_url_cfg) {
+    MDEBUG() << "TRANSFER";
+    object->deliver =
+        new net::DeliverCore(p_url_cfg->dst.c_str(), p_url_cfg->port, object);
+    object->deliver->Init();
+    object->deliver->Process();
+    return;
+
   } else {
     auto path = object->parse_handler->url();
     auto version = object->parse_handler->version();
