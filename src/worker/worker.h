@@ -8,9 +8,11 @@
 #include "component/http.h"
 #include "component/router.h"
 #include "logger/core.h"
-#include "net/deliver_core.h"
 #include "net/object.h"
+#include "worker_proxy.h"
 #include "worker_waiter.h"
+
+#define BUFFER_LEN 409600
 
 namespace worker {
 
@@ -46,6 +48,8 @@ void ReaderHandlerFun(void* arg) {
 
         if (res == -1) break;
         object->http_code = (com::http::HttpCode)res;
+
+        MDEBUG() << "READER BUFFER: " << object->readed_buf;
         // 主业务处理加入到线程池
         WorkerWaiter::Instance()->Append(WorkerWaiter::CONTENT, object);
         return;
@@ -65,47 +69,6 @@ void ReaderHandlerFun(void* arg) {
   }
   object->epoll->Mod(object->fd, EPOLLIN);
   return;
-}
-
-void* TransferHandlerFun(void* arg) {
-  struct net::Object* object = (net::Object*)arg;
-
-  int writed = 0;
-  while (object->chunk_data.size() > 0) {
-    pthread_mutex_lock(&object->chunk_lock);
-
-    auto& p = object->chunk_data.front();
-
-    if (p.size == 0) {
-      object->chunk_data.pop();
-      pthread_mutex_unlock(&object->chunk_lock);
-      continue;
-    }
-
-    writed = send(object->fd, p.addr_offset, p.size, MSG_NOSIGNAL);
-
-    MDEBUG() << "SEND: " << writed;
-
-    if (writed < 0) {
-      if (errno = EAGAIN) {
-        MDEBUG() << "EAGAIN";
-        object->epoll->Mod(object->fd, EPOLLOUT);
-        pthread_mutex_unlock(&object->chunk_lock);
-        return nullptr;
-      }
-      // 重新初始化处理线程的成员
-      object->Init();
-      close(object->fd);
-      break;
-    }
-
-    p.size -= writed;
-    p.addr_offset += writed;
-
-    pthread_mutex_unlock(&object->chunk_lock);
-  }
-  pthread_mutex_unlock(&object->chunk_lock);
-  object->epoll->Mod(object->fd, EPOLLIN);
 }
 
 void WriterHandlerFun(void* arg) {
@@ -153,22 +116,11 @@ void WriterHandlerFun(void* arg) {
         break;
       }
       case com::http::Packet::TRANS: {
-        if (object->transfer_thread_exist) {
-          int kill_rc = pthread_kill(object->transfer_thread, 0);
-          if (kill_rc == ESRCH)
-            printf("the specified thread did not exists or already quit\n");
-          else if (kill_rc == EINVAL)
-            printf("signal is invalid\n");
-          else {
-            printf("the specified thread is alive\n");
-            return;
-          }
-        }
+        if (thread::JudgeThreadAlive(object->proxy_resp_thread)) return;
 
-        pthread_create(&(object->transfer_thread), nullptr, TransferHandlerFun,
-                       object);
-        object->transfer_thread_exist = true;
-        pthread_detach(object->transfer_thread);
+        pthread_create(&(object->proxy_resp_thread), nullptr,
+                       ProxyRespHandlerFun, object);
+        pthread_detach(object->proxy_resp_thread);
 
         return;
       }
@@ -197,6 +149,7 @@ void WriterHandlerFun(void* arg) {
   }
 }
 
+// 内容处理
 void ContentHandlerFun(void* arg) {
   struct net::Object* object = (net::Object*)arg;
 
@@ -206,6 +159,7 @@ void ContentHandlerFun(void* arg) {
     return;
   }
 
+  // proxy
   std::string p_host_value;
   com::Config::UrlRedirectConfig* p_url_cfg = nullptr;
   try {
@@ -216,14 +170,18 @@ void ContentHandlerFun(void* arg) {
   } catch (...) {
     MDEBUG() << "TRANSFER HOST NOT FOUND!";
   }
-  if (p_url_cfg) {
-    MDEBUG() << "TRANSFER";
-    object->deliver =
-        new net::DeliverCore(p_url_cfg->dst.c_str(), p_url_cfg->port, object);
-    object->deliver->Init();
-    object->deliver->Process();
-    return;
 
+  // proxy
+  if (p_url_cfg) {
+    if (!object->InitProxy(p_url_cfg->dst.c_str(), p_url_cfg->port)) {
+      object->packet_handler->Process(com::http::BAD_REQUEST);
+      object->epoll->Mod(object->fd, EPOLLOUT);
+      return;
+    }
+    ProxyClinetSenderFun(object);
+    ProxyClinetReaderFun(object);
+
+    return;
   } else {
     auto path = object->parse_handler->url();
     auto version = object->parse_handler->version();

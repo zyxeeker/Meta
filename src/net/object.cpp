@@ -1,7 +1,6 @@
 #include "object.h"
 
 #include "component/config.h"
-#include "deliver_core.h"
 #include "logger/core.h"
 
 namespace net {
@@ -33,8 +32,27 @@ void Object::Init() {
   // }
 }
 
+bool Object::InitProxy(const char* addr, int port) {
+  if (client != nullptr && client->get_fd() != -1) {
+    if (client->get_fd() != -1)
+      return true;
+    else if (client->Init() > 0) {
+      client.reset();
+      return false;
+    }
+  }
+
+  auto p = CreateNetSokcet(INetWrap::CLIENT, port, addr);
+  if (!p) return false;
+
+  client.reset(p);
+
+  packet_handler->SetTrans();
+  return true;
+}
+
 void Object::Close() {
-  if (deliver != nullptr) deliver->Close();
+  if (client != nullptr) client->Close();
 }
 
 }  // namespace net
