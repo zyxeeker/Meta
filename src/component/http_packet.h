@@ -14,7 +14,7 @@ namespace http {
 
 class Packet {
  public:
-  enum Type { CODE, FILE, DATA };
+  enum Type { CODE, FILE, DATA, TRANS };
 
   Packet() : m_buf_size(1024) {
     m_buf = new char[m_buf_size];
@@ -41,6 +41,9 @@ class Packet {
 
   // 包装类型
   Type type() { return m_type; }
+  // 设置为转发类型
+  void SetTrans() { m_type = TRANS; }
+
   // 文件iov结构体
   iovec* file_buf() { return m_file_buf; }
   // 文件地址
