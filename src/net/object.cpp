@@ -5,7 +5,7 @@
 
 namespace net {
 
-std::shared_ptr<com::Epoll> Object::epoll = nullptr;
+int Object::epoll_fd;
 
 Object::Object() {
   auto size = com::Config::Instance()->config().read_buf_length;
@@ -54,5 +54,7 @@ bool Object::InitProxy(const char* addr, int port) {
 void Object::Close() {
   if (client != nullptr) client->Close();
 }
+
+void Object::EpollMod(int op) { com::EpollMofFd(epoll_fd, fd, op); }
 
 }  // namespace net

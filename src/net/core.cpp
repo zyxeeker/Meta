@@ -17,9 +17,10 @@ namespace net {
 Core* Core::inst = nullptr;
 
 Core::Core() {
-  m_epoll.reset(new com::Epoll(10000));
+  m_epoll_fd = com::CreateEpoll();
+  m_epoll_event_manager.reset(new com::EpollEventManager(100));
   m_object = new Object[65536];
-  m_object->epoll = m_epoll;
+  m_object->epoll_fd = m_epoll_fd;
 }
 
 void Core::Start() {
@@ -42,7 +43,7 @@ void Core::Start() {
 void Core::Loop() {
   MINFO() << "MAIN LOOP START!";
   while (1) {
-    auto total = m_epoll->Wait();
+    auto total = m_epoll_event_manager->Wait(m_epoll_fd);
 
     /* Some interfaces are never restarted after being interrupted by a signal
      * handler, regardless of the use of SA_RESTART; they always fail with the
@@ -56,7 +57,7 @@ void Core::Loop() {
       continue;
 
     for (int i = 0; i < total; ++i) {
-      auto socket = m_epoll->events(i)->data.fd;
+      auto socket = m_epoll_event_manager->events(i)->data.fd;
       // 新客户端连接
       if (m_socket_list.find(socket) != m_socket_list.end()) {
         sockaddr_in client_addr;
@@ -68,17 +69,17 @@ void Core::Loop() {
         m_object[confd].fd = confd;
         m_object[confd].Init();
 
-        m_epoll->Add(confd, true);
+        com::EpollAddFd(m_epoll_fd, confd, true);
       }
       // 管道数据
-      else if (m_epoll->events(i)->events &
+      else if (m_epoll_event_manager->events(i)->events &
                (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
         MDEBUG() << "CLOSE FD: " << socket;
         m_object[socket].Close();
         Close(socket);
       }
       // 客户端数据可读
-      else if (m_epoll->events(i)->events & EPOLLIN) {
+      else if (m_epoll_event_manager->events(i)->events & EPOLLIN) {
         MDEBUG() << "READER CON FD: " << socket;
         worker::WorkerWaiter::Instance()->Append(worker::WorkerWaiter::READER,
                                                  &m_object[socket]);
@@ -87,7 +88,7 @@ void Core::Loop() {
         // m_epoll->Mod(socket, EPOLLOUT);
       }
       // 客户端数据可写
-      else if (m_epoll->events(i)->events & EPOLLOUT) {
+      else if (m_epoll_event_manager->events(i)->events & EPOLLOUT) {
         MDEBUG() << "EPOLLOUT: " << socket;
         worker::WorkerWaiter::Instance()->Append(worker::WorkerWaiter::WRITER,
                                                  &m_object[socket]);
@@ -103,7 +104,7 @@ void Core::SocketListCtl(INetWrap* net, ListCtl ctl) {
 
   if (ctl == LIST_CTL_ADD) {
     m_socket_list[socket].reset(net);
-    m_epoll->Add(socket, false);
+    com::EpollAddFd(m_epoll_fd, socket, false);
   }
   if (ctl == LIST_CTL_REMOVE) {
     auto it = m_socket_list.find(socket);
@@ -116,7 +117,7 @@ void Core::SocketListCtl(INetWrap* net, ListCtl ctl) {
 
 void Core::Close(int32_t& fd) {
   // 从epoll管理中移除并关闭
-  m_epoll->Del(fd);
+  com::EpollDelFd(m_epoll_fd, fd);
   close(fd);
 }
 

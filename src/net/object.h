@@ -33,7 +33,8 @@ struct Chunk {
 struct Object {
   int fd;
   com::http::HttpCode http_code = com::http::OK;
-  static std::shared_ptr<com::Epoll> epoll;
+
+  static int epoll_fd;
 
   std::shared_ptr<com::http::Parse> parse_handler;
   std::shared_ptr<com::http::Packet> packet_handler;
@@ -80,6 +81,8 @@ struct Object {
   bool InitProxy(const char* addr, int port);
 
   void Close();
+
+  void EpollMod(int op = EPOLLOUT);
 };
 
 }  // namespace net

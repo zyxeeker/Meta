@@ -23,7 +23,7 @@ void ReaderHandlerFun(void* arg) {
 
   if (object->readed_offset >= k_buffer_size) {
     object->http_code = com::http::REQUEST_ENTITY_TOO_LARGE;
-    object->epoll->Mod(object->fd, EPOLLOUT);
+    object->EpollMod();
     return;
   }
 
@@ -32,7 +32,7 @@ void ReaderHandlerFun(void* arg) {
     // 请求体过大
     if (object->readed_offset >= k_buffer_size) {
       object->http_code = com::http::REQUEST_ENTITY_TOO_LARGE;
-      object->epoll->Mod(object->fd, EPOLLOUT);
+      object->EpollMod();
       return;
     }
 
@@ -61,13 +61,13 @@ void ReaderHandlerFun(void* arg) {
        value will be 0*/
     else if (readed == 0) {
       object->http_code = com::http::REQUEST_ENTITY_TOO_LARGE;
-      object->epoll->Mod(object->fd, EPOLLOUT);
+      object->EpollMod();
       return;
     }
 
     object->readed_offset += readed;
   }
-  object->epoll->Mod(object->fd, EPOLLIN);
+  object->EpollMod(EPOLLIN);
   return;
 }
 
@@ -128,7 +128,7 @@ void WriterHandlerFun(void* arg) {
 
     if (writed < 0) {
       if (errno = EAGAIN) {
-        object->epoll->Mod(object->fd, EPOLLOUT);
+        object->EpollMod();
         return;
       }
       // 重新初始化处理线程的成员
@@ -142,7 +142,7 @@ void WriterHandlerFun(void* arg) {
       // 释放打开文件
       object->packet_handler->ReleaseFile();
       // 等待下一次数据到达
-      object->epoll->Mod(object->fd, EPOLLIN);
+      object->EpollMod(EPOLLIN);
       return;
     }
     object->write_offset += writed;
@@ -155,7 +155,7 @@ void ContentHandlerFun(void* arg) {
 
   if (object->http_code != 200) {
     object->packet_handler->Process(object->http_code);
-    object->epoll->Mod(object->fd, EPOLLOUT);
+    object->EpollMod();
     return;
   }
 
@@ -175,7 +175,7 @@ void ContentHandlerFun(void* arg) {
   if (p_url_cfg) {
     if (!object->InitProxy(p_url_cfg->dst.c_str(), p_url_cfg->port)) {
       object->packet_handler->Process(com::http::BAD_REQUEST);
-      object->epoll->Mod(object->fd, EPOLLOUT);
+      object->EpollMod();
       return;
     }
     ProxyClinetSenderFun(object);
@@ -193,7 +193,7 @@ void ContentHandlerFun(void* arg) {
     else
       object->packet_handler->Process(path, com::http::Packet::FILE);
   }
-  object->epoll->Mod(object->fd, EPOLLOUT);
+  object->EpollMod();
 }
 
 }  // namespace worker

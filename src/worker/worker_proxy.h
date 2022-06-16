@@ -54,7 +54,7 @@ void ProxyClinetReaderFun(void* arg) {
       pthread_mutex_lock(&(object->chunk_lock));
       object->chunk_data.push({dst_buf, len});
       pthread_mutex_unlock(&(object->chunk_lock));
-      object->epoll->Mod(object->fd, EPOLLOUT);
+      object->EpollMod();
     }
   }
   object->Close();
@@ -79,7 +79,7 @@ void* ProxyRespHandlerFun(void* arg) {
 
     if (writed < 0) {
       if (errno = EAGAIN) {
-        object->epoll->Mod(object->fd, EPOLLOUT);
+        object->EpollMod();
         pthread_mutex_unlock(&object->chunk_lock);
         return nullptr;
       }
@@ -95,7 +95,7 @@ void* ProxyRespHandlerFun(void* arg) {
     pthread_mutex_unlock(&object->chunk_lock);
   }
   pthread_mutex_unlock(&object->chunk_lock);
-  object->epoll->Mod(object->fd, EPOLLIN);
+  object->EpollMod(EPOLLIN);
 }
 
 }  // namespace worker

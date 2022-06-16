@@ -40,8 +40,10 @@ class Core {
 
   Object *m_object = nullptr;
 
-  // epoll
-  std::shared_ptr<com::Epoll> m_epoll;
+  // epoll fd
+  int m_epoll_fd;
+  // epoll events
+  std::unique_ptr<com::EpollEventManager> m_epoll_event_manager;
 
   // 多个端口服务
   std::unordered_map<int, std::shared_ptr<INetWrap>> m_socket_list;
