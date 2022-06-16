@@ -36,6 +36,10 @@ class Parse {
   const int& content_length() { return m_content_length; }
   // 请求体
   const std::string& content() { return m_content; }
+  // 原始数据
+  const char* data() { return m_data; }
+  // 原始数据长度
+  size_t len() const { return m_len; }
 
  private:
   // 解析\r\n标志位

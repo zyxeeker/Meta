@@ -13,6 +13,7 @@ Config::Config() {
   try {
     p_config = YAML::LoadFile("config.yaml");
     Read(p_config);
+    ReadRedirectSettings(p_config);
   } catch (YAML::Exception e) {
     std::cout << e.msg << std::endl;
   }
@@ -36,6 +37,14 @@ void Config::Read(YAML::Node& cfg) {
 template <typename T>
 void Config::ReadOption(YAML::Node& cfg, const char* key, T& dst) {
   if (cfg[key].Type() != YAML::NodeType::Undefined) dst = cfg[key].as<T>();
+}
+
+void Config::ReadRedirectSettings(YAML::Node& cfg) {
+  for (auto it : cfg["url_redirect"]) {
+    m_config.redirect_settings[it["src"].as<std::string>()] =
+        new UrlRedirectConfig{.dst = it["dst"].as<std::string>(),
+                              .port = it["port"].as<int32_t>()};
+  }
 }
 
 }  // namespace com

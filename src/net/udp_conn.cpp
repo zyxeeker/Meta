@@ -4,7 +4,7 @@ namespace net {
 
 INetWrap::ConnResult UdpConn::Init() {
   sockaddr_in address;
-  InitSockAddress(address, sizeof(address), m_port);
+  InitSockAddress(address, sizeof(address), m_addr, m_port);
 
   m_socket_fd = socket(PF_INET, SOCK_DGRAM, 0);
   if (m_socket_fd < 0) return CREATE_FAILED;

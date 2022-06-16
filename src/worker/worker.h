@@ -1,12 +1,18 @@
 #ifndef SRC_WORKER_WORKER_H_
 #define SRC_WORKER_WORKER_H_
 
+#include <signal.h>
+
 #include "component/config.h"
 #include "component/epoll.h"
 #include "component/http.h"
 #include "component/router.h"
+#include "logger/core.h"
 #include "net/object.h"
+#include "worker_proxy.h"
 #include "worker_waiter.h"
+
+#define BUFFER_LEN 409600
 
 namespace worker {
 
@@ -42,6 +48,8 @@ void ReaderHandlerFun(void* arg) {
 
         if (res == -1) break;
         object->http_code = (com::http::HttpCode)res;
+
+        MDEBUG() << "READER BUFFER: " << object->readed_buf;
         // 主业务处理加入到线程池
         WorkerWaiter::Instance()->Append(WorkerWaiter::CONTENT, object);
         return;
@@ -77,32 +85,45 @@ void WriterHandlerFun(void* arg) {
   if (type == com::http::Packet::FILE) {
     file_buf_p = object->packet_handler->file_buf();
     file_size = object->packet_handler->file_size();
+    if (object->write_offset >= buf_size + file_size) return;
   }
-
-  if (object->write_offset >= buf_size + file_size) return;
 
   int writed = 0;
   size_t total_size = buf_size + file_size;
 
   while (1) {
-    if (type == com::http::Packet::CODE)
-      writed = send(object->fd, buf_p + object->write_offset,
-                    buf_size - object->write_offset, MSG_NOSIGNAL);
-    else {
-      int over = 0;
-      // 使用iovec需自己计算偏移值
-      if (object->write_offset >= buf_size) {
-        over = object->write_offset - buf_size;
-        file_buf_p[0].iov_len = 0;
-        file_buf_p[1].iov_base = (char*)file_buf_p[1].iov_base + over;
-        file_buf_p[1].iov_len = file_buf_p[1].iov_len - over;
-      } else {
-        file_buf_p[0].iov_base =
-            (char*)file_buf_p[0].iov_base + object->write_offset;
-        file_buf_p[0].iov_len = file_buf_p[0].iov_len - object->write_offset;
+    switch (type) {
+      case com::http::Packet::CODE: {
+        writed = send(object->fd, buf_p + object->write_offset,
+                      buf_size - object->write_offset, MSG_NOSIGNAL);
+        break;
       }
-      writed = writev(object->fd, file_buf_p, 2);
-      object->write_offset = 0;
+      case com::http::Packet::FILE: {
+        int over = 0;
+        // 使用iovec需自己计算偏移值
+        if (object->write_offset >= buf_size) {
+          over = object->write_offset - buf_size;
+          file_buf_p[0].iov_len = 0;
+          file_buf_p[1].iov_base = (char*)file_buf_p[1].iov_base + over;
+          file_buf_p[1].iov_len = file_buf_p[1].iov_len - over;
+        } else {
+          file_buf_p[0].iov_base =
+              (char*)file_buf_p[0].iov_base + object->write_offset;
+          file_buf_p[0].iov_len = file_buf_p[0].iov_len - object->write_offset;
+        }
+        writed = writev(object->fd, file_buf_p, 2);
+        object->write_offset = 0;
+        break;
+      }
+      case com::http::Packet::TRANS: {
+        if (thread::JudgeThreadAlive(object->proxy_resp_thread)) return;
+
+        pthread_create(&(object->proxy_resp_thread), nullptr,
+                       ProxyRespHandlerFun, object);
+        pthread_detach(object->proxy_resp_thread);
+
+        return;
+      }
     }
 
     if (writed < 0) {
@@ -128,11 +149,39 @@ void WriterHandlerFun(void* arg) {
   }
 }
 
+// 内容处理
 void ContentHandlerFun(void* arg) {
   struct net::Object* object = (net::Object*)arg;
 
   if (object->http_code != 200) {
     object->packet_handler->Process(object->http_code);
+    object->epoll->Mod(object->fd, EPOLLOUT);
+    return;
+  }
+
+  // proxy
+  std::string p_host_value;
+  com::Config::UrlRedirectConfig* p_url_cfg = nullptr;
+  try {
+    p_host_value = object->parse_handler->header().at("Host");
+    MDEBUG() << "HOST: " << p_host_value.c_str();
+    p_url_cfg =
+        com::Config::Instance()->config().redirect_settings.at(p_host_value);
+  } catch (...) {
+    MDEBUG() << "TRANSFER HOST NOT FOUND!";
+  }
+
+  // proxy
+  if (p_url_cfg) {
+    if (!object->InitProxy(p_url_cfg->dst.c_str(), p_url_cfg->port)) {
+      object->packet_handler->Process(com::http::BAD_REQUEST);
+      object->epoll->Mod(object->fd, EPOLLOUT);
+      return;
+    }
+    ProxyClinetSenderFun(object);
+    ProxyClinetReaderFun(object);
+
+    return;
   } else {
     auto path = object->parse_handler->url();
     auto version = object->parse_handler->version();

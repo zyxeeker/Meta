@@ -1,6 +1,15 @@
 directory: /home/www
-port: 9006
+port: 80
 timer_time_out: 180
 client_alive_time: 180
 client_capacity: 50
 read_buf_length: 4096
+url_redirect:
+  - 
+    src: 111.111.111.111
+    dst: 222.222.222.222
+    port: 80
+  -
+    src: 111.111.111.111
+    dst: 222.222.222.222
+    port: 80
