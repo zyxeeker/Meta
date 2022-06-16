@@ -10,7 +10,7 @@ namespace net {
 
 INetWrap::ConnResult TcpConn::Init() {
   sockaddr_in address;
-  InitSockAddress(address, sizeof(address), m_port);
+  InitSockAddress(address, sizeof(address), m_addr, m_port);
 
   m_listen_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (m_listen_fd < 0) return CREATE_FAILED;
