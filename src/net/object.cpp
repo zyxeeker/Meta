@@ -55,6 +55,6 @@ void Object::Close() {
   if (client != nullptr) client->Close();
 }
 
-void Object::EpollMod(int op) { com::EpollMofFd(epoll_fd, fd, op); }
+void Object::EpollMod(int op) { com::EpollModFd(epoll_fd, fd, op); }
 
 }  // namespace net

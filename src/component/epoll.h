@@ -46,7 +46,7 @@ static void EpollDelFd(int epoll_fd, int fd) {
   epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, 0);
 }
 
-static void EpollMofFd(int epoll_fd, int fd, int op) {
+static void EpollModFd(int epoll_fd, int fd, int op) {
   epoll_event event;
   event.data.fd = fd;
   event.events = op | EPOLLET | EPOLLONESHOT | EPOLLRDHUP;
