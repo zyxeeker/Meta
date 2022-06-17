@@ -16,7 +16,6 @@ INetWrap* CreateNetSokcet(INetWrap::NetType type, u_int32_t port,
     case INetWrap::TCP: {
       auto* p = new TcpConn(port);
       if (p->Init() > 0) {
-        MERROR() << "TCP: Port is obtained!";
         delete p;
         return nullptr;
       }
@@ -25,7 +24,6 @@ INetWrap* CreateNetSokcet(INetWrap::NetType type, u_int32_t port,
     case INetWrap::UDP: {
       auto* p = new UdpConn(port);
       if (p->Init() > 0) {
-        MERROR() << "UDP: Port is obtained!";
         delete p;
         return nullptr;
       }
