@@ -173,8 +173,14 @@ void ContentHandlerFun(void* arg) {
 
   // proxy
   if (p_url_cfg) {
+    // method拦截
+    if ((p_url_cfg->allow_method & object->parse_handler->method()) == 0) {
+      object->packet_handler->Process(com::http::METHOD_NOT_ALLOWED);
+      object->EpollMod();
+      return;
+    }
     if (!object->InitProxy(p_url_cfg->dst.c_str(), p_url_cfg->port)) {
-      object->packet_handler->Process(com::http::BAD_REQUEST);
+      object->packet_handler->Process(com::http::INTERNAL_SERVER_ERROR);
       object->EpollMod();
       return;
     }
