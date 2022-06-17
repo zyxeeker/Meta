@@ -61,8 +61,8 @@ void Config::ReadRedirectSettings(YAML::Node& cfg) {
           it["dst"].Type() == YAML::NodeType::Undefined)
         continue;
 
-      auto proxy_cfg = new UrlRedirectConfig;
-      if (it["allow_method"].Type() != YAML::NodeType::Undefined) {
+      auto proxy_cfg = new ReverseProxy;
+      if (it["reverse_proxy"].Type() != YAML::NodeType::Undefined) {
         proxy_cfg->allow_method = http::UNKNOWN;
         for (auto method : it["allow_method"]) {
           auto t = method.as<std::string>();
@@ -73,7 +73,7 @@ void Config::ReadRedirectSettings(YAML::Node& cfg) {
       if (it["port"].Type() != YAML::NodeType::Undefined)
         proxy_cfg->port = it["port"].as<int32_t>();
 
-      m_config.redirect_settings[it["src"].as<std::string>()] = proxy_cfg;
+      m_config.proxy_settings[it["src"].as<std::string>()] = proxy_cfg;
     }
   }
 }

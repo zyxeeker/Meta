@@ -4,7 +4,7 @@ timer_time_out: 180
 client_alive_time: 180
 client_capacity: 50
 read_buf_length: 4096
-url_redirect:
+reverse_proxy:
   - 
     src: 111.111.111.111
     dst: 222.222.222.222

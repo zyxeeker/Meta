@@ -161,12 +161,12 @@ void ContentHandlerFun(void* arg) {
 
   // proxy
   std::string p_host_value;
-  com::Config::UrlRedirectConfig* p_url_cfg = nullptr;
+  com::Config::ReverseProxy* p_url_cfg = nullptr;
   try {
     p_host_value = object->parse_handler->header().at("Host");
     MDEBUG() << "HOST: " << p_host_value.c_str();
     p_url_cfg =
-        com::Config::Instance()->config().redirect_settings.at(p_host_value);
+        com::Config::Instance()->config().proxy_settings.at(p_host_value);
   } catch (...) {
     MDEBUG() << "TRANSFER HOST NOT FOUND!";
   }

@@ -11,10 +11,18 @@
 #include "thread/pool.h"
 #include "writer.h"
 
-#define MINFO() logger::Core::Instance()->Out(logger::LogLevel::INFO)
-#define MDEBUG() logger::Core::Instance()->Out(logger::LogLevel::DEBUG)
-#define MWARN() logger::Core::Instance()->Out(logger::LogLevel::WARN)
-#define MERROR() logger::Core::Instance()->Out(logger::LogLevel::ERROR)
+#define LOGGER_DETAIL                                              \
+  "[" << __FUNCTION__ << "(" << __FILE__ << ":" << __LINE__ << ")" \
+      << "]:"
+
+#define MINFO() \
+  logger::Core::Instance()->Out(logger::LogLevel::INFO) << LOGGER_DETAIL
+#define MDEBUG() \
+  logger::Core::Instance()->Out(logger::LogLevel::DEBUG) << LOGGER_DETAIL
+#define MWARN() \
+  logger::Core::Instance()->Out(logger::LogLevel::WARN) << LOGGER_DETAIL
+#define MERROR() \
+  logger::Core::Instance()->Out(logger::LogLevel::ERROR) << LOGGER_DETAIL
 
 namespace logger {
 
