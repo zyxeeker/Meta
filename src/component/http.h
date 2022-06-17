@@ -8,22 +8,24 @@
 #include <cstring>
 #include <unordered_map>
 
+#define ALL_METHOD 0x01FF
+
 namespace com {
 namespace http {
 
 enum HttpVersion { UNSUPPORTED = -1, HTTP_1_1 };
 
 enum HttpMethod {
-  UNKNOWN = -1,
-  GET,
-  HEAD,
-  POST,
-  PUT,
-  DELETE,
-  CONNECT,
-  OPTIONS,
-  TRACE,
-  PATCH
+  UNKNOWN = 0x0000,
+  GET = 0x0001,
+  HEAD = 0x0002,
+  POST = 0x0004,
+  PUT = 0x0010,
+  DELETE = 0x0020,
+  CONNECT = 0x0040,
+  OPTIONS = 0x0080,
+  TRACE = 0x0100,
+  PATCH = 0x0200
 };
 
 const int HTTP_CODE_CONTENT_LENGTH = 96;

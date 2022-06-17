@@ -9,6 +9,9 @@ url_redirect:
     src: 111.111.111.111
     dst: 222.222.222.222
     port: 80
+    allow_method: 
+      - GET
+      - POST
   -
     src: 111.111.111.111
     dst: 222.222.222.222

@@ -5,16 +5,17 @@
 
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
+
+#include "component/http.h"
 
 namespace com {
 
 class Config {
  public:
   typedef struct url_redirect {
-    std::string dst;
-    int port;
-    // std::unordered_set<std::string> disabled_method;
+    std::string dst = "";           // 反代目标
+    int port = 80;                  // 反代目标端口
+    int allow_method = ALL_METHOD;  // 允许的方式
   } UrlRedirectConfig;
 
   typedef struct config {
@@ -25,7 +26,7 @@ class Config {
     u_int32_t client_capacity = 50;       // 客户端容量
     u_int32_t read_buf_length = 4096;     // 读取缓存区大小
     std::unordered_map<std::string, UrlRedirectConfig*>
-        redirect_settings;  // 重定向字典
+        redirect_settings;  // 反代字典
   } CFG;
 
   static Config* Instance() {

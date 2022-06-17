@@ -2,9 +2,23 @@
 
 #include <iostream>
 
+#include "component/http.h"
+
 #define CONFIG_ARG(Key) cfg, #Key, m_config.Key
 
 namespace com {
+
+static http::HttpMethod JudgeMethod(std::string& data) {
+  if (data == "GET") return http::GET;
+  if (data == "HEAD") return http::HEAD;
+  if (data == "POST") return http::POST;
+  if (data == "PUT") return http::PUT;
+  if (data == "DELETE") return http::DELETE;
+  if (data == "CONNECT") return http::CONNECT;
+  if (data == "OPTIONS") return http::OPTIONS;
+  if (data == "TRACE") return http::TRACE;
+  if (data == "PATCH") return http::PATCH;
+}
 
 Config* Config::inst = nullptr;
 
@@ -40,10 +54,27 @@ void Config::ReadOption(YAML::Node& cfg, const char* key, T& dst) {
 }
 
 void Config::ReadRedirectSettings(YAML::Node& cfg) {
-  for (auto it : cfg["url_redirect"]) {
-    m_config.redirect_settings[it["src"].as<std::string>()] =
-        new UrlRedirectConfig{.dst = it["dst"].as<std::string>(),
-                              .port = it["port"].as<int32_t>()};
+  auto data = cfg["url_redirect"];
+  if (data.Type() != YAML::NodeType::Undefined) {
+    for (auto it : data) {
+      if (it["src"].Type() == YAML::NodeType::Undefined &&
+          it["dst"].Type() == YAML::NodeType::Undefined)
+        continue;
+
+      auto proxy_cfg = new UrlRedirectConfig;
+      if (it["allow_method"].Type() != YAML::NodeType::Undefined) {
+        proxy_cfg->allow_method = http::UNKNOWN;
+        for (auto method : it["allow_method"]) {
+          auto t = method.as<std::string>();
+          proxy_cfg->allow_method |= JudgeMethod(t);
+        }
+      }
+
+      if (it["port"].Type() != YAML::NodeType::Undefined)
+        proxy_cfg->port = it["port"].as<int32_t>();
+
+      m_config.redirect_settings[it["src"].as<std::string>()] = proxy_cfg;
+    }
   }
 }
 
