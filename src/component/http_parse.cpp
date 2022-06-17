@@ -154,6 +154,30 @@ HttpMethod Parse::JudgeMethod(const size_t& end) {
   if (strncmp(m_data, "GET", end) == 0) {
     return GET;
   }
+  if (strncmp(m_data, "HEAD", end) == 0) {
+    return HEAD;
+  }
+  if (strncmp(m_data, "POST", end) == 0) {
+    return POST;
+  }
+  if (strncmp(m_data, "PUT", end) == 0) {
+    return PUT;
+  }
+  if (strncmp(m_data, "DELETE", end) == 0) {
+    return DELETE;
+  }
+  if (strncmp(m_data, "CONNECT", end) == 0) {
+    return CONNECT;
+  }
+  if (strncmp(m_data, "OPTIONS", end) == 0) {
+    return OPTIONS;
+  }
+  if (strncmp(m_data, "TRACE", end) == 0) {
+    return TRACE;
+  }
+  if (strncmp(m_data, "PATCH", end) == 0) {
+    return PATCH;
+  }
   return UNKNOWN;
 }
 
