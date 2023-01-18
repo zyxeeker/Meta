@@ -11,6 +11,7 @@
 #include "logger/core.h"
 #include "net/core.h"
 #include "thread/pool.h"
+#include "logger/log.h"
 
 #define META_LOOP 1
 
@@ -142,8 +143,11 @@ TEST(Logger, Writer) {
 }
 
 int main(int argc, char **argv) {
+auto k = new meta::LogFormatter;
+k->Init("%d{%Y %M %D %H %M }%S %p %F %L %m");
+
 #if META_LOOP
-  net::Core::Instance()->Start();
+//  net::Core::Instance()->Start();
 #else
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
