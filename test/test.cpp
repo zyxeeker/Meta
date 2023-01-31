@@ -144,7 +144,14 @@ TEST(Logger, Writer) {
 
 int main(int argc, char **argv) {
 auto k = new meta::LogFormatter;
-k->Init("%d{%Y %M %D %H %M }%S %p %F %L %m");
+k->Init("%d{%Y %M %D %H %M AB} %r AAA %P ||%F|| AAABBB %L %m");
+meta::Log::ptr log = std::make_shared<meta::Log>(meta::Log());
+meta::LogEvent::ptr event = std::make_shared<meta::LogEvent>(meta::LogEvent());
+std::cout<<k->pattern().size();
+for (auto i : k->pattern())
+{
+  i->Format(std::cout,log,event);
+}
 
 #if META_LOOP
 //  net::Core::Instance()->Start();

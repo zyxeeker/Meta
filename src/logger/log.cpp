@@ -12,12 +12,6 @@
 
 namespace meta {
 
-enum LogBlock {
-  STR_BLOCK     = 0,
-  PATTERN_BLOCK = 1,
-  BLOCK_NUM     = 2
-};
-
 // 最低输出的日志级别
 static LogLevel::level k_level = LogLevel::INFO;
 
@@ -58,168 +52,182 @@ void Log::Logger(LogLevel::level level, LogEvent::ptr event) {
   // TODO:
 }
 
-// 格式化模块
-class DateTimeFormat : public LogFormatter::LogFormatterItem {
+//// 日志参数模块 Begin
+// 日志名
+class LName : public LogFormatter::LogFormatterParam {
  public:
-  // TODO:
-  DateTimeFormat(const std::string& fmt) : m_fmt(fmt) {}
-  void Format(std::ostream os, Log::ptr log, LogEvent::ptr event) override {
-    // TODO:
-  }
- private:
-  const std::string& m_fmt;
-};
-
-class StringBlockFormat : public LogFormatter::LogFormatterItem{
- public:
-  StringBlockFormat(const std::string& buf) : m_buf(buf){}
-  void Format(std::ostream os, Log::ptr log, LogEvent::ptr event) override {
-    os << m_buf;
-  }
- private:
-  const std::string& m_buf;
-};
-
-class NameFormat : public LogFormatter::LogFormatterItem {
- public:
-  NameFormat(const std::string& buf) {}
-  void Format(std::ostream os, Log::ptr log, LogEvent::ptr event) override {
+  LName(const std::string &buf) {}
+  void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
     os << log->name();
   }
 };
 
-class TabFormat : public LogFormatter::LogFormatterItem {
+// 日志等级
+class LLevel : public LogFormatter::LogFormatterParam {
  public:
-  TabFormat(const std::string& buf) {}
-  void Format(std::ostream os, Log::ptr log, LogEvent::ptr event) override {
+  LLevel(const std::string &buf) {}
+  void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
+    os << LogLevel::ToString(log->level());
+  }
+};
+
+// 日期
+class LDateTime : public LogFormatter::LogFormatterParam {
+ public:
+  LDateTime(const std::string &fmt) : m_fmt(fmt) {}
+  void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
+
+  }
+ private:
+  const std::string &m_fmt;
+};
+
+// 原始字符
+class LString : public LogFormatter::LogFormatterParam {
+ public:
+  LString(const std::string buf) : m_buf(buf) {}
+  void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
+    os << m_buf;
+  }
+ private:
+  const std::string m_buf;
+};
+
+// Tab
+class LTab : public LogFormatter::LogFormatterParam {
+ public:
+  LTab(const std::string &buf) {}
+  void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
     os << "\t";
   }
 };
 
-class NewLineFormat : public LogFormatter::LogFormatterItem {
+// 换行
+class LNewLine : public LogFormatter::LogFormatterParam {
  public:
-  NewLineFormat(const std::string& buf) {}
-  void Format(std::ostream os, Log::ptr log, LogEvent::ptr event) override {
+  LNewLine(const std::string &buf) {}
+  void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
     os << "\n";
   }
 };
 
-class ThreadNameFormat : public LogFormatter::LogFormatterItem {
+// 线程名
+class LThreadName : public LogFormatter::LogFormatterParam {
  public:
-  ThreadNameFormat(const std::string& buf) {}
-  void Format(std::ostream os, Log::ptr log, LogEvent::ptr event) override {
+  LThreadName(const std::string &buf) {}
+  void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
     os << event->thread_name();
   }
 };
 
-class ThreadIdFormat : public LogFormatter::LogFormatterItem {
+// 线程ID
+class LThreadId : public LogFormatter::LogFormatterParam {
  public:
-  ThreadIdFormat(const std::string& buf) {}
-  void Format(std::ostream os, Log::ptr log, LogEvent::ptr event) override {
+  LThreadId(const std::string &buf) {}
+  void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
     os << std::to_string(event->thread_id());
   }
 };
 
-class FileNameFormat : public LogFormatter::LogFormatterItem {
+// 文件名
+class LFileName : public LogFormatter::LogFormatterParam {
  public:
-  FileNameFormat(const std::string& buf) {}
-  void Format(std::ostream os, Log::ptr log, LogEvent::ptr event) override {
-    os <<event->file_name();
+  LFileName(const std::string &buf) {}
+  void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
+    os << event->file_name();
   }
 };
 
-class LineFormat : public LogFormatter::LogFormatterItem {
+// 行号
+class LLineNum : public LogFormatter::LogFormatterParam {
  public:
-  LineFormat(const std::string& buf) {}
-  void Format(std::ostream os, Log::ptr log, LogEvent::ptr event) override {
+  LLineNum(const std::string &buf) {}
+  void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
     os << std::to_string(event->line());
   }
 };
 
-class MsgFormat : public LogFormatter::LogFormatterItem {
+// 消息
+class LMsg : public LogFormatter::LogFormatterParam {
  public:
-  MsgFormat(const std::string& buf) {}
-  void Format(std::ostream os, Log::ptr log, LogEvent::ptr event) override {
+  LMsg(const std::string &buf) {}
+  void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
     os << event->msg();
   }
 };
+//// 日志参数模块 End
 
 void LogFormatter::Init(std::string pattern) {
-  // 格式化回调函数Map
-  static std::map<std::string, std::function<LogFormatterItem::ptr(const std::string &str)>> k_formatter_item_cb = {
+  // 日志格式回调函数Map
+  static std::map<std::string, std::function<LogFormatterParam::ptr(const std::string &str)>> k_formatter_param_cb = {
 #define XX(str, C) \
-    {#str, [](const std::string& buf){ return LogFormatterItem::ptr(new C(buf)); }}, \
+    {#str, [](const std::string& buf){ return LogFormatterParam::ptr(new C(buf)); }}, \
 
-      XX(r, NameFormat)             // r 日志名称
-      XX(d, DateTimeFormat)         // d 日志时间
-      XX(t, TabFormat)              // t \t
-      XX(n, NewLineFormat)          // n \n
-      XX(T, ThreadIdFormat)         // T Thread ID
-      XX(N, ThreadNameFormat)       // N Thread Name
-      XX(F, FileNameFormat)         // F 文件名
-      XX(L, LineFormat)             // L 行号
-      XX(m, MsgFormat)              // m 消息
+      XX(r, LName)             // r 日志名称
+      XX(d, LDateTime)         // d 时间
+      XX(P, LLevel)            // P 日志等级
+      XX(S, LString)           // S 原始字符串
+      XX(t, LTab)              // t \t
+      XX(n, LNewLine)          // n \n
+      XX(T, LThreadId)         // T Thread ID
+      XX(N, LThreadName)       // N Thread Name
+      XX(F, LFileName)         // F 文件名
+      XX(L, LLineNum)          // L 行号
+      XX(m, LMsg)              // m 消息
 #undef XX
   };
 
-#if 0
-  pattern = "%d{%Y %M %D %H %M %S} %p %F %L %m";
-#endif
   std::string pattern_sub_str;
-  for (int i = 0; i < pattern.size(); i++) {
+  for (uint32_t i = 0, j; i < pattern.size(); i++) {
     // 不为%
     if (pattern[i] != '%') {
       pattern_sub_str.append(1, pattern[i]);
       continue;
     }
     // 为%
-    // TODO:Append String format item
+    m_pattern.push_back(k_formatter_param_cb["S"](pattern_sub_str));
     pattern_sub_str.clear();
 
-    if (++i < pattern.size()) {
-      auto res = k_formatter_item_cb.find(pattern.substr(i,1));
-      if (res == k_formatter_item_cb.end()) {
-        std::cout << "Unknown pattern: " << pattern[i] << std::endl;
-        break;
-      }
-      // TODO:Append formatter
-
-      // Datetime Fmt Begin
-      if (pattern[i++] == 'd') {
-        if (std::isspace(pattern[i]) || pattern[i] != '{') {
+    j = ++i;
+    if (j < pattern.size()) {
+      // DateTime fmt Begin
+      if (pattern[j] == 'd') {
+        ++j;
+        if (std::isspace(pattern[j]) || pattern[j] != '{')
           continue;
-        }
-        uint32_t front_bracket_index = i, last_bracket_index = 0;
-        std::stack<uint32_t> front_bracket;
-        ++i;
-        while (i < pattern.size()) {
-          if (pattern[i] == '{') {
-            front_bracket.push(i);
-          }
-          if (pattern[i] == '}') {
-            if (!front_bracket.empty()) {
-              front_bracket.pop();
-              last_bracket_index = i;
-            } else {
-              last_bracket_index = i;
+
+        uint32_t front_bracket_index = j, front_bracket_count = 0, last_bracket_index = 0;
+        for (++j; j < pattern.size(); j++) {
+          if (pattern[j] == '{')
+            ++front_bracket_count;
+          if (pattern[j] == '}') {
+            last_bracket_index = j;
+            if (front_bracket_count > 0)
+              --front_bracket_count;
+            else
               break;
-            }
           }
-          ++i;
         }
         if (last_bracket_index <= front_bracket_index) {
-          std::cout << "Illegal pattern for datetime" << last_bracket_index <<" " << front_bracket_index << std::endl;
+          std::cout << "Illegal pattern for datetime" << last_bracket_index << " " << front_bracket_index << std::endl;
           break;
         }
-        ++front_bracket_index;
-        std::string date_sub_string = pattern.substr(front_bracket_index, last_bracket_index - front_bracket_index);
-        std::cout <<date_sub_string<<std::endl;
-        // TODO:append date format
-        continue;
+        std::string date_sub_string = pattern.substr(++front_bracket_index, last_bracket_index - front_bracket_index - 1);
+        std::cout << date_sub_string << std::endl;
+
+        m_pattern.push_back(k_formatter_param_cb["d"](date_sub_string));
+        i = last_bracket_index;
+        // DateTime fmt End
+      } else {
+        auto res = k_formatter_param_cb.find(pattern.substr(j, 1));
+        if (res == k_formatter_param_cb.end()) {
+          std::cout << "Illegal pattern: " << pattern[j] << j<<std::endl;
+          break;
+        }
+        m_pattern.push_back(res->second(""));
       }
-      // Datetime Fmt End
     }
- }
+  }
 }
 
 void LogFileOutput::Write(std::ofstream os, std::string buf) {
