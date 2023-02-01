@@ -54,6 +54,11 @@ class LogLevel {
 class LogEvent {
  public:
   typedef std::shared_ptr<LogEvent> ptr;
+  LogEvent(const char *file = nullptr, const char *caller = nullptr,
+           uint32_t line = -1, uint32_t thread_id = -1, uint64_t time = 0,
+           std::string thread_name = "main", std::string msg = "") :
+      m_file_name(file), m_caller(caller), m_thread_id(thread_id),
+      m_time(time), m_thread_name(thread_name), m_msg(msg) {};
 
   const char *file_name() { return m_file_name; }
   const char *caller() { return m_caller; }
@@ -64,20 +69,19 @@ class LogEvent {
   const std::string &msg() { return m_msg; }
 
  private:
-  const char *m_file_name = nullptr;        // 文件名
-  const char *m_caller    = nullptr;        // 函数名
-  uint32_t m_line         = 0;              // 行号
-  uint32_t m_thread_id    = 0;              // 线程id
-  uint64_t m_time         = 0;              // 时间戳
-  std::string m_thread_name;                // 线程名
-  std::string m_msg;                        // 内容
+  const char *m_file_name;        // 文件名
+  const char *m_caller;           // 函数名
+  uint32_t m_line;                // 行号
+  uint32_t m_thread_id;           // 线程id
+  uint64_t m_time;                // 时间戳
+  std::string m_thread_name;      // 线程名
+  std::string m_msg;              // 内容
 };
 
 // 日志器
 class Log {
  public:
   typedef std::shared_ptr<Log> ptr;
-
   Log(LogLevel::level level = LogLevel::INFO, std::string name = "root") :
       m_level(level), m_name(name) {};
 
@@ -100,6 +104,8 @@ class Log {
 // 日志格式解析器
 class LogFormatter {
  public:
+  typedef std::shared_ptr<LogFormatter> ptr;
+
   void Init(std::string pattern);
 
   // 日志参数模块
@@ -107,10 +113,9 @@ class LogFormatter {
    public:
     typedef std::shared_ptr<LogFormatter::LogFormatterParam> ptr;
     virtual ~LogFormatterParam() {};
-    virtual void Format(std::ostream& os, Log::ptr log, LogEvent::ptr event) = 0;
+    virtual void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) = 0;
   };
-
-  const std::list<LogFormatterParam::ptr>& pattern() { return m_pattern; }
+  const std::list<LogFormatterParam::ptr> &pattern() { return m_pattern; }
 
  private:
   std::list<LogFormatterParam::ptr> m_pattern;
@@ -119,22 +124,36 @@ class LogFormatter {
 // 日志输出
 class LogOutput {
  public:
-  ~LogOutput();
-  virtual void Handle(Log::ptr log, LogEvent::ptr event) = 0;
+  LogOutput(LogFormatter::ptr formatter) : m_formatter(formatter) {};
+  virtual ~LogOutput() {};
+
+  virtual void Print(Log::ptr log, LogEvent::ptr event) = 0;
+
+ protected:
+  LogFormatter::ptr m_formatter;
 };
 
+// 控制台输出
 class LogConsoleOutput : public LogOutput {
  public:
-  void Handle(Log::ptr log, LogEvent::ptr event) override;
+  typedef std::shared_ptr<LogConsoleOutput> ptr;
+  LogConsoleOutput(LogFormatter::ptr formatter) : LogOutput(formatter) {}
+
+  void Print(Log::ptr log, LogEvent::ptr event) override;
 };
 
+// 文件输出
 class LogFileOutput : public LogOutput {
  public:
-  LogFileOutput(std::string file_name) : m_file_name(file_name) {};
-  void Handle(Log::ptr log, LogEvent::ptr event) override;
+  typedef std::shared_ptr<LogFileOutput> ptr;
+  LogFileOutput(std::string file_name, LogFormatter::ptr formatter) :
+      LogOutput(formatter), m_file_name(file_name) {};
+
+  void Print(Log::ptr log, LogEvent::ptr event) override;
 
  private:
   void Write(std::ofstream os, std::string buf);
+
  private:
   std::ofstream m_file_stream;
   std::string m_file_name;

@@ -1,14 +1,18 @@
 /**
  * @author: zyxeeker
  * @createTime: 2023/01/12 8:39 AM
- * @description: ${description}
+ * @description: 日志相关实现
  */
 
 #include "log.h"
+#include <ctime>
 #include <map>
 #include <stack>
 #include <functional>
 #include <iostream>
+
+#define DEFAULT_DATETIME_PATTERN  "%Y-%m-%d %H:%M"
+#define EMPTY_PARAM               ""
 
 namespace meta {
 
@@ -74,12 +78,15 @@ class LLevel : public LogFormatter::LogFormatterParam {
 // 日期
 class LDateTime : public LogFormatter::LogFormatterParam {
  public:
-  LDateTime(const std::string &fmt) : m_fmt(fmt) {}
+  LDateTime(const std::string fmt) : m_fmt(fmt) {}
   void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
-
+    char date[50]{0};
+    time_t now = time(nullptr);
+    strftime(date, 50, m_fmt.c_str(), localtime(&now));
+    os << date;
   }
  private:
-  const std::string &m_fmt;
+  const std::string m_fmt;
 };
 
 // 原始字符
@@ -134,7 +141,18 @@ class LFileName : public LogFormatter::LogFormatterParam {
  public:
   LFileName(const std::string &buf) {}
   void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
-    os << event->file_name();
+    auto f = event->file_name();
+    f ? os << f : os << EMPTY_PARAM;
+  }
+};
+
+// 函数名
+class LCaller : public LogFormatter::LogFormatterParam {
+ public:
+  LCaller(const std::string &buf) {}
+  void Format(std::ostream &os, Log::ptr log, LogEvent::ptr event) override {
+    auto c = event->caller();
+    c ? os << c : os << EMPTY_PARAM;
   }
 };
 
@@ -172,6 +190,7 @@ void LogFormatter::Init(std::string pattern) {
       XX(T, LThreadId)         // T Thread ID
       XX(N, LThreadName)       // N Thread Name
       XX(F, LFileName)         // F 文件名
+      XX(C, LCaller)           // C 函数名
       XX(L, LLineNum)          // L 行号
       XX(m, LMsg)              // m 消息
 #undef XX
@@ -193,8 +212,10 @@ void LogFormatter::Init(std::string pattern) {
       // DateTime fmt Begin
       if (pattern[j] == 'd') {
         ++j;
-        if (std::isspace(pattern[j]) || pattern[j] != '{')
+        if (std::isspace(pattern[j]) || pattern[j] != '{') {
+          m_pattern.push_back(k_formatter_param_cb["d"](DEFAULT_DATETIME_PATTERN));
           continue;
+        }
 
         uint32_t front_bracket_index = j, front_bracket_count = 0, last_bracket_index = 0;
         for (++j; j < pattern.size(); j++) {
@@ -212,7 +233,8 @@ void LogFormatter::Init(std::string pattern) {
           std::cout << "Illegal pattern for datetime" << last_bracket_index << " " << front_bracket_index << std::endl;
           break;
         }
-        std::string date_sub_string = pattern.substr(++front_bracket_index, last_bracket_index - front_bracket_index - 1);
+        std::string date_sub_string = pattern.substr(++front_bracket_index,
+                                                     last_bracket_index - front_bracket_index - 1);
         std::cout << date_sub_string << std::endl;
 
         m_pattern.push_back(k_formatter_param_cb["d"](date_sub_string));
@@ -221,12 +243,18 @@ void LogFormatter::Init(std::string pattern) {
       } else {
         auto res = k_formatter_param_cb.find(pattern.substr(j, 1));
         if (res == k_formatter_param_cb.end()) {
-          std::cout << "Illegal pattern: " << pattern[j] << j<<std::endl;
+          std::cout << "Illegal pattern: " << pattern[j] << j << std::endl;
           break;
         }
-        m_pattern.push_back(res->second(""));
+        m_pattern.push_back(res->second(EMPTY_PARAM));
       }
     }
+  }
+}
+
+void LogConsoleOutput::Print(Log::ptr log, LogEvent::ptr event) {
+  for (auto &i : m_formatter->pattern()) {
+    i->Format(std::cout, log, event);
   }
 }
 
