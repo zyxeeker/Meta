@@ -5,6 +5,7 @@
  */
 
 #include "log.h"
+#include <unistd.h>
 #include <ctime>
 #include <map>
 #include <stack>
@@ -256,10 +257,35 @@ void LogConsoleOutput::Print(Log::ptr log, LogEvent::ptr event) {
   for (auto &i : m_formatter->pattern()) {
     i->Format(std::cout, log, event);
   }
+  std::cout << std::endl;
 }
 
-void LogFileOutput::Write(std::ofstream os, std::string buf) {
-  os << buf;
+void LogFileOutput::Init() {
+  OpenFile();
+}
+
+void LogFileOutput::Print(Log::ptr log, LogEvent::ptr event) {
+  for (auto &i : m_formatter->pattern()) {
+    i->Format(m_stream, log, event);
+  }
+  m_stream << std::endl;
+}
+
+bool LogFileOutput::OpenFile() {
+  if (m_path.empty()) {
+    auto path = get_current_dir_name();
+    m_path = path;
+  }
+  std::string f;
+  f.append(m_path);
+  f.append("/");
+  f.append(m_name);
+  m_stream.open(f.c_str(), std::ios::out | std::ios::app);
+  if (!m_stream.is_open()) {
+    std::cout << "Failed to open:" << f << std::endl;
+    return false;
+  }
+  return true;
 }
 
 } // namespace meta

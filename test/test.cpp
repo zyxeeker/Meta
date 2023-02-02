@@ -144,12 +144,14 @@ TEST(Logger, Writer) {
 
 int main(int argc, char **argv) {
   meta::LogFormatter::ptr log_formatter = std::make_shared<meta::LogFormatter>();
-  log_formatter->Init("%d {%r} [%P] ||%F|| AAABBB %L %m");
+  log_formatter->Init("%d {%r} [%P] ||%F|| AAABBB %L %T %N %m");
   meta::Log::ptr log = std::make_shared<meta::Log>(meta::Log());
   meta::LogEvent::ptr event = std::make_shared<meta::LogEvent>(meta::LogEvent());
   meta::LogConsoleOutput::ptr out = std::make_shared<meta::LogConsoleOutput>(meta::LogConsoleOutput(log_formatter));
-
+  meta::LogFileOutput::ptr f_out = std::make_shared<meta::LogFileOutput>(meta::LogFileOutput("test.log", log_formatter));
   out->Print(log, event);
+  f_out->Init();
+  f_out->Print(log, event);
 
 #if META_LOOP
 //  net::Core::Instance()->Start();

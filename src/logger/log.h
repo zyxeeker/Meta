@@ -146,17 +146,21 @@ class LogConsoleOutput : public LogOutput {
 class LogFileOutput : public LogOutput {
  public:
   typedef std::shared_ptr<LogFileOutput> ptr;
-  LogFileOutput(std::string file_name, LogFormatter::ptr formatter) :
-      LogOutput(formatter), m_file_name(file_name) {};
+  LogFileOutput(std::string name, LogFormatter::ptr formatter) :
+      LogOutput(formatter), m_name(name) {};
+  LogFileOutput(std::string path, std::string name, LogFormatter::ptr formatter) :
+      LogOutput(formatter), m_path(path), m_name(name) {};
 
+  void Init();
   void Print(Log::ptr log, LogEvent::ptr event) override;
 
  private:
-  void Write(std::ofstream os, std::string buf);
+  bool OpenFile();
 
  private:
-  std::ofstream m_file_stream;
-  std::string m_file_name;
+  std::ofstream m_stream;
+  std::string m_path;
+  std::string m_name;
 };
 
 } // namespace meta
