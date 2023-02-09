@@ -33,6 +33,7 @@ struct LogBuffer {
 
 }  // namespace logger
 
+#if 0
 namespace meta {
 
 // 日志等级
@@ -53,9 +54,9 @@ class LogLevel {
 // 日志事件
 class LogEvent {
  public:
-  typedef std::shared_ptr<LogEvent> ptr;
+  using ptr = std::shared_ptr<LogEvent>;
   LogEvent(const char *file = nullptr, const char *caller = nullptr,
-           uint32_t line = -1, uint32_t thread_id = -1, uint64_t time = 0,
+           uint32_t line = 0, uint32_t thread_id = 0, uint64_t time = 0,
            std::string thread_name = "main", std::string msg = "") :
       m_file_name(file), m_caller(caller), m_thread_id(thread_id),
       m_time(time), m_thread_name(thread_name), m_msg(msg) {};
@@ -78,6 +79,8 @@ class LogEvent {
   std::string m_msg;              // 内容
 };
 
+class LogOutput;
+
 // 日志器
 class Log {
  public:
@@ -95,10 +98,13 @@ class Log {
   LogLevel::level level() { return m_level; }
  private:
   void Logger(LogLevel::level level, LogEvent::ptr event);
+  void Append(std::shared_ptr<LogOutput> out);
+  void Remove();
 
  private:
   std::string m_name;
   LogLevel::level m_level;
+  std::list<std::shared_ptr<LogOutput>> m_output_queue;
 };
 
 // 日志格式解析器
@@ -164,5 +170,5 @@ class LogFileOutput : public LogOutput {
 };
 
 } // namespace meta
-
+#endif
 #endif  // SRC_LOGGER_LOG_H_

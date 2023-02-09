@@ -11,7 +11,7 @@
 #include <stack>
 #include <functional>
 #include <iostream>
-
+#if 0
 #define DEFAULT_DATETIME_PATTERN  "%Y-%m-%d %H:%M"
 #define EMPTY_PARAM               ""
 
@@ -55,6 +55,14 @@ void Log::Fatal(LogEvent::ptr event) {
 
 void Log::Logger(LogLevel::level level, LogEvent::ptr event) {
   // TODO:
+}
+
+void Log::Append(std::shared_ptr<LogOutput> out) {
+  m_output_queue.emplace_back(out);
+}
+
+void Log::Remove() {
+  m_output_queue.pop_front();
 }
 
 //// 日志参数模块 Begin
@@ -287,5 +295,5 @@ bool LogFileOutput::OpenFile() {
   }
   return true;
 }
-
 } // namespace meta
+#endif

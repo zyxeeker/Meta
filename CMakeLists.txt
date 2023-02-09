@@ -10,6 +10,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DMETA_DEBUG")
 endif()
 
 include_directories(src)
+include_directories(include)
 # YAML
 include_directories(${CMAKE_SOURCE_DIR}/3rd/yaml/include)
 

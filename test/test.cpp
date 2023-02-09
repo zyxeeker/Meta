@@ -12,6 +12,7 @@
 #include "net/core.h"
 #include "thread/pool.h"
 #include "logger/log.h"
+#include "log.h"
 
 #define META_LOOP 1
 
@@ -142,7 +143,9 @@ TEST(Logger, Writer) {
            << "1111111";
 }
 
+
 int main(int argc, char **argv) {
+#if 0
   meta::LogFormatter::ptr log_formatter = std::make_shared<meta::LogFormatter>();
   log_formatter->Init("%d {%r} [%P] ||%F|| AAABBB %L %T %N %m");
   meta::Log::ptr log = std::make_shared<meta::Log>(meta::Log());
@@ -152,9 +155,11 @@ int main(int argc, char **argv) {
   out->Print(log, event);
   f_out->Init();
   f_out->Print(log, event);
-
+#endif
 #if META_LOOP
-//  net::Core::Instance()->Start();
+  META_INFO()<<"INFO TEST";
+  META_INFO_FMT("INFO FMT TEST #%d", 1);
+  META_DEBUG_FMT("DEBUG FMT TEST #%d", 1);
 #else
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
