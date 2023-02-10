@@ -154,7 +154,7 @@ class LogFileOutput : public LogOutput {
   void Init();
   void Print(Logger::ptr log, LogEvent::ptr event) override;
  private:
-  bool OpenFile();
+  void OpenFile();
   std::ofstream m_stream;
   std::string m_path;
   std::string m_name;

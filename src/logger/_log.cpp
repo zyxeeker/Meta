@@ -13,6 +13,12 @@
 
 namespace meta {
 
+static LogLevel::level k_min_level = LogLevel::INFO;
+
+void SetLoggerMinLevel(LogLevel::level level) {
+  k_min_level = level;
+}
+
 using formatter_param_cb = std::map<std::string, std::function<LogFormatter::LogFormatterParam::ptr(const std::string &str)>>;
 static formatter_param_cb & formatter_param_cb_map(){
 // 日志格式回调函数Map
@@ -56,6 +62,7 @@ const char *LogLevel::ToString(LogLevel::level level) {
       return "UNKNOWN";
   }
 }
+
 LogEvent::LogEvent(const char *file, const char *caller, uint32_t line,
                    uint32_t thread_id, uint64_t time, std::string thread_name) :
                    _file_name(file), _caller(caller), _thread_id(thread_id),
@@ -97,7 +104,6 @@ void LogFormatter::Init(std::string pattern) {
       pattern_sub_str.append(1, pattern[i]);
       continue;
     }
-#if 1
     // 为%
     _pattern.push_back(formatter_param_cb_map()["S"](pattern_sub_str));
     pattern_sub_str.clear();
@@ -144,7 +150,6 @@ void LogFormatter::Init(std::string pattern) {
         _pattern.push_back(res->second(EMPTY_PARAM));
       }
     }
-#endif
   }
 }
 
@@ -168,11 +173,39 @@ void LogConsoleOutput::Print(Logger::ptr log, LogEvent::ptr event) {
   std::cout << std::endl;
 }
 
+void LogFileOutput::Init() {
+  OpenFile();
+}
+
+void LogFileOutput::Print(Logger::ptr log, LogEvent::ptr event) {
+  if (!m_stream.is_open()) 
+    return;
+  for (auto &i : _formatter->pattern()) {
+    i->Format(m_stream, log, event);
+  }
+  m_stream << std::endl;
+}
+
+void LogFileOutput::OpenFile() {
+  if (m_path.empty()) {
+    auto path = get_current_dir_name();
+    m_path = path;
+  }
+  std::string f;
+  f.append(m_path);
+  f.append("/");
+  f.append(m_name);
+  m_stream.open(f.c_str(), std::ios::out | std::ios::app);
+  if (!m_stream.is_open())
+    META_ERROR() << "Failed to open: " << f;
+}
+
 LogWrap::LogWrap(const Logger::ptr &logger, LogEvent::ptr event) : 
                 _logger(logger), _event(event) {}
 
 LogWrap::~LogWrap() {
-  _logger->Print(_event);
+  if (_logger->level() >= k_min_level)
+    _logger->Print(_event);
 }
 
 static std::shared_ptr<Logger> CreateLogger(LogLevel::level level = meta::LogLevel::INFO){
@@ -192,24 +225,12 @@ LoggerManager::LoggerManager() : _default_logger(std::make_shared<Logger>()) {
 Logger::ptr LoggerManager::GetLogger(LogLevel::level level) {
   auto res = k_logger_mgr.find(level);
   if (res == k_logger_mgr.end()) {
-    // Crated it if it's not exist
+    // Created it if it's not exist
     auto logger = CreateLogger(level);
     k_logger_mgr.insert(std::pair<LogLevel::level, Logger::ptr>(level, logger));
     return logger;
   }
   return res->second;
-}
-
-void LoggerManager::Append(LogLevel::level level, Logger::ptr log) {
-  if (k_logger_mgr.find(level) != k_logger_mgr.end()) {
-    META_WARN_FMT("The logger of %s is already exist!", LogLevel::ToString(level));
-    return;
-  }
-  k_logger_mgr.insert(std::pair<LogLevel::level, Logger::ptr>(level, log));
-}
-
-void LoggerManager::Remove(LogLevel::level level) {
-  k_logger_mgr.erase(level);
 }
 
 } // namespace meta

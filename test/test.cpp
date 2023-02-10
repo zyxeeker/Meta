@@ -157,6 +157,8 @@ int main(int argc, char **argv) {
   f_out->Print(log, event);
 #endif
 #if META_LOOP
+  META_MIN_LOG_LEVEL(meta::LogLevel::DEBUG);
+  // meta::SetLoggerMinLevel(meta::LogLevel::ERROR);
   META_INFO()<<"INFO TEST";
   META_INFO_FMT("INFO FMT TEST #%d", 1);
   META_DEBUG_FMT("DEBUG FMT TEST #%d", 1);

@@ -19,6 +19,8 @@ meta::LogFormatter::Append(#K, [](const std::string &buf){ return meta::LogForma
 #define FORMATTER_REMOVE_PARAM(K) \
 meta::LogFormatter::Remove(#K);
 
+#define META_MIN_LOG_LEVEL(L) meta::SetLoggerMinLevel(L)
+
 #define META_EVENT std::make_shared<meta::LogEvent>(__FILE__, __FUNCTION__, __LINE__, 0, 0)
 
 #define META_DEBUG()  \
@@ -58,6 +60,8 @@ class LogLevel {
   static const char *ToString(LogLevel::level level);
 };
 
+void SetLoggerMinLevel(LogLevel::level level);
+
 // 日志事件
 class LogEvent {
  public:
@@ -85,7 +89,6 @@ private:
 };
 
 class LogOutput;
-class LogFormatter;
 // 日志器
 class Logger : public std::enable_shared_from_this<Logger>{
  public:
@@ -147,8 +150,6 @@ class LoggerManager {
  public:
   LoggerManager();
   Logger::ptr GetLogger(LogLevel::level level);
-  void Append(LogLevel::level level, Logger::ptr log);
-  void Remove(LogLevel::level level);
  private:
   Logger::ptr _default_logger;
 };
