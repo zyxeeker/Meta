@@ -13,6 +13,7 @@
 #include "thread/pool.h"
 #include "logger/log.h"
 #include "log.h"
+#include "config.h"
 
 #define META_LOOP 1
 
@@ -162,6 +163,10 @@ int main(int argc, char **argv) {
   META_INFO()<<"INFO TEST";
   META_INFO_FMT("INFO FMT TEST #%d", 1);
   META_DEBUG_FMT("DEBUG FMT TEST #%d", 1);
+
+  meta::CfgInt cfg_int(22);
+  META_DEBUG() << cfg_int.GetValue();
+  META_DEBUG() << cfg_int.ToString();
 #else
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
